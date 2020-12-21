@@ -117,34 +117,28 @@ int main(void)
 
     HAL_DAC_Start(&hdac, DAC_CHANNEL_1);
 
-    // HAL_TIM_Base_Start(&htim2);
+    HAL_TIM_Base_Start(&htim2);
 
-    // get_sineval();
+    get_sineval();
 
-    // HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, sine_val, 100, DAC_ALIGN_12B_R);
+    HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, sine_val, 100, DAC_ALIGN_12B_R);
 
-    /* USER CODE END 2 */
-
-    /* Infinite loop */
-    /* USER CODE BEGIN WHILE */
     while (1)
     {
-        /* USER CODE END WHILE */
-
-        /* USER CODE BEGIN 3 */
-
-        var = value * (0xfff + 1) / 3.3;
-
+        var = value * (4096) / 3.3;
         HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, var);
-
         value += 0.5;
-
         HAL_Delay(2000);
-
         if (value > 3)
             value = 0.2;
+
+        // for (int i = 0; i < 100; i++)
+        // {
+        //     HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, sine_val[i]);
+        // }
     }
-    /* USER CODE END 3 */
+
+    return 0;
 }
 
 /**
