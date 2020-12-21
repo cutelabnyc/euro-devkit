@@ -115,7 +115,7 @@ int main(void)
     MX_TIM2_Init();
     /* USER CODE BEGIN 2 */
 
-    HAL_DAC_Start(&hdac, DAC_CHANNEL_1);
+    //  HAL_DAC_Start(&hdac, DAC_CHANNEL_1);
 
     HAL_TIM_Base_Start(&htim2);
 
@@ -123,22 +123,27 @@ int main(void)
 
     HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, sine_val, 100, DAC_ALIGN_12B_R);
 
+    /* USER CODE END 2 */
+
+    /* Infinite loop */
+    /* USER CODE BEGIN WHILE */
     while (1)
     {
-        var = value * (4096) / 3.3;
-        HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, var);
-        value += 0.5;
-        HAL_Delay(2000);
-        if (value > 3)
-            value = 0.2;
+        /* USER CODE END WHILE */
 
-        // for (int i = 0; i < 100; i++)
-        // {
-        //     HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, sine_val[i]);
-        // }
+        /* USER CODE BEGIN 3 */
+
+        //	  var = value*(0xfff+1)/3.3;
+        //
+        //	  HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, var);
+        //
+        //	  value += 0.5;
+        //
+        //	  HAL_Delay(2000);
+        //
+        //	  if (value>3) value=0.2;
     }
-
-    return 0;
+    /* USER CODE END 3 */
 }
 
 /**
@@ -164,7 +169,6 @@ void SystemClock_Config(void)
     RCC_OscInitStruct.PLL.PLLN = 180;
     RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
     RCC_OscInitStruct.PLL.PLLQ = 2;
-    // RCC_OscInitStruct.PLL.PLLR = 2;
     if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
     {
         Error_Handler();
@@ -245,7 +249,7 @@ static void MX_TIM2_Init(void)
 
     /* USER CODE END TIM2_Init 1 */
     htim2.Instance = TIM2;
-    htim2.Init.Prescaler = 9 - 1;
+    htim2.Init.Prescaler = 9;
     htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
     htim2.Init.Period = 100 - 1;
     htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
