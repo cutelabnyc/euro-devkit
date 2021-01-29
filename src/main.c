@@ -29,8 +29,8 @@
 #define PI 3.14159f
 
 //Sample rate and Output freq
-#define F_SAMPLE 48000.0f
-#define F_OUT 1500.0
+#define F_SAMPLE 50000.0f
+#define F_OUT 1000.0
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -122,7 +122,7 @@ int main(void)
 
     /* USER CODE BEGIN 2 */
     CS43_Init(hi2c1, MODE_ANALOG);
-    CS43_SetVolume(40);
+    CS43_SetVolume(50);
     CS43_Enable_RightLeft(CS43_RIGHT_LEFT);
     CS43_Start();
 
@@ -138,7 +138,11 @@ int main(void)
     while (1)
     {
         /* USER CODE END WHILE */
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
+        HAL_Delay(200);
 
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
+        HAL_Delay(200);
         /* USER CODE BEGIN 3 */
     }
     /* USER CODE END 3 */
@@ -224,7 +228,7 @@ static void MX_DAC_Init(void)
     sConfig.DAC_OutputBuffer = DAC_OUTPUTBUFFER_ENABLE;
     if (HAL_DAC_ConfigChannel(&hdac, &sConfig, DAC_CHANNEL_1) != HAL_OK)
     {
-        // Error_Handler();
+        Error_Handler();
     }
     /* USER CODE BEGIN DAC_Init 2 */
 
