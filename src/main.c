@@ -23,6 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "codec/CS43L22.h"
+#include "uexkull.h"
 #include <math.h>
 
 #define PI 3.14159f
@@ -74,12 +75,14 @@ static void MX_TIM2_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-float mySinVal;
 float sample_dt;
+float sig_out;
 uint16_t sample_N;
 uint16_t i_t;
 
-uint32_t myDacVal;
+uexkull_t uexkull;
+
+uint32_t audio_out;
 uint16_t I2S_dummy[4];
 /* USER CODE END 0 */
 
@@ -128,6 +131,8 @@ int main(void)
     HAL_DAC_Start(&hdac, DAC_CHANNEL_1);
     HAL_TIM_Base_Start_IT(&htim2);
     /* USER CODE END 2 */
+
+    UX_init(&uexkull, 50000);
 
     /* Infinite loop */
     /* USER CODE BEGIN WHILE */
@@ -387,11 +392,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
     if (htim->Instance == TIM2)
     {
-        mySinVal = sinf(i_t * 2 * PI * sample_dt);
+        sig_out = UX_process(&uexkull, 0.5, 440);
+        audio_out = (sig_out + 1) * 127;
 
-        myDacVal = (mySinVal + 1) * 127;
-
-        HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_8B_R, myDacVal);
+        HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_8B_R, audio_out);
 
         i_t++;
         if (i_t >= sample_N)
