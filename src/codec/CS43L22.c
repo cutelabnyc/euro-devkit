@@ -17,8 +17,8 @@ References:
    or indirectly by this software, read more about this on the GNU General Public License.
 */
 
-#include "stm32f4xx_hal.h"
-#include "MY_CS43L22.h"
+#include <stm32f4xx_hal.h>
+#include "CS43L22.h"
 
 static uint8_t iData[2];
 static I2C_HandleTypeDef i2cx;

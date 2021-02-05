@@ -22,13 +22,13 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "MY_CS43L22.h"
+#include "codec/CS43L22.h"
 #include <math.h>
 
 #define PI 3.14159f
 
 #define F_SAMPLE 50000.0f
-#define F_OUT 1000.0f
+#define F_OUT 440.0f
 
 /* USER CODE END Includes */
 
@@ -119,7 +119,7 @@ int main(void)
     MX_TIM2_Init();
     /* USER CODE BEGIN 2 */
     CS43_Init(hi2c1, MODE_ANALOG);
-    CS43_SetVolume(30);
+    CS43_SetVolume(20);
     CS43_Enable_RightLeft(CS43_RIGHT_LEFT);
     CS43_Start();
 
