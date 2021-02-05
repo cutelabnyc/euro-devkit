@@ -19,7 +19,6 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "stm32f4xx_hal.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -28,9 +27,9 @@
 
 #define PI 3.14159f
 
-//Sample rate and Output freq
 #define F_SAMPLE 50000.0f
-#define F_OUT 1000.0
+#define F_OUT 1000.0f
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -81,8 +80,7 @@ uint16_t sample_N;
 uint16_t i_t;
 
 uint32_t myDacVal;
-
-int16_t I2S_dummy[4];
+uint16_t I2S_dummy[4];
 /* USER CODE END 0 */
 
 /**
@@ -119,10 +117,9 @@ int main(void)
     MX_I2C1_Init();
     MX_I2S3_Init();
     MX_TIM2_Init();
-
     /* USER CODE BEGIN 2 */
     CS43_Init(hi2c1, MODE_ANALOG);
-    CS43_SetVolume(50);
+    CS43_SetVolume(30);
     CS43_Enable_RightLeft(CS43_RIGHT_LEFT);
     CS43_Start();
 
@@ -130,7 +127,6 @@ int main(void)
 
     HAL_DAC_Start(&hdac, DAC_CHANNEL_1);
     HAL_TIM_Base_Start_IT(&htim2);
-
     /* USER CODE END 2 */
 
     /* Infinite loop */
@@ -138,11 +134,7 @@ int main(void)
     while (1)
     {
         /* USER CODE END WHILE */
-        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
-        HAL_Delay(200);
 
-        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
-        HAL_Delay(200);
         /* USER CODE BEGIN 3 */
     }
     /* USER CODE END 3 */
@@ -175,7 +167,7 @@ void SystemClock_Config(void)
     RCC_OscInitStruct.PLL.PLLQ = 7;
     if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
     {
-        // Error_Handler();
+        Error_Handler();
     }
     /** Initializes the CPU, AHB and APB buses clocks
   */
@@ -187,14 +179,14 @@ void SystemClock_Config(void)
 
     if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
     {
-        // Error_Handler();
+        Error_Handler();
     }
     PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_I2S;
-    PeriphClkInitStruct.PLLI2S.PLLI2SN = 192;
+    PeriphClkInitStruct.PLLI2S.PLLI2SN = 50;
     PeriphClkInitStruct.PLLI2S.PLLI2SR = 2;
     if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
     {
-        // Error_Handler();
+        Error_Handler();
     }
 }
 
@@ -220,7 +212,7 @@ static void MX_DAC_Init(void)
     hdac.Instance = DAC;
     if (HAL_DAC_Init(&hdac) != HAL_OK)
     {
-        // Error_Handler();
+        Error_Handler();
     }
     /** DAC channel OUT1 config
   */
@@ -261,7 +253,7 @@ static void MX_I2C1_Init(void)
     hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
     if (HAL_I2C_Init(&hi2c1) != HAL_OK)
     {
-        // Error_Handler();
+        Error_Handler();
     }
     /* USER CODE BEGIN I2C1_Init 2 */
 
@@ -294,7 +286,7 @@ static void MX_I2S3_Init(void)
     hi2s3.Init.FullDuplexMode = I2S_FULLDUPLEXMODE_DISABLE;
     if (HAL_I2S_Init(&hi2s3) != HAL_OK)
     {
-        // Error_Handler();
+        Error_Handler();
     }
     /* USER CODE BEGIN I2S3_Init 2 */
 
@@ -327,18 +319,18 @@ static void MX_TIM2_Init(void)
     htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
     if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
     {
-        // Error_Handler();
+        Error_Handler();
     }
     sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
     if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
     {
-        // Error_Handler();
+        Error_Handler();
     }
     sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
     sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
     if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
     {
-        // Error_Handler();
+        Error_Handler();
     }
     /* USER CODE BEGIN TIM2_Init 2 */
 
@@ -377,10 +369,11 @@ static void MX_GPIO_Init(void)
     __HAL_RCC_GPIOB_CLK_ENABLE();
 
     /*Configure GPIO pin Output Level */
-    HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15 | GPIO_PIN_4, GPIO_PIN_RESET);
 
-    /*Configure GPIO pins : PD12 PD13 PD14 PD15 */
-    GPIO_InitStruct.Pin = GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15;
+    /*Configure GPIO pins : PD12 PD13 PD14 PD15
+                           PD4 */
+    GPIO_InitStruct.Pin = GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15 | GPIO_PIN_4;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -395,9 +388,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     if (htim->Instance == TIM2)
     {
         mySinVal = sinf(i_t * 2 * PI * sample_dt);
-        //Convert from float to decimal
+
         myDacVal = (mySinVal + 1) * 127;
-        //Output the sample to the STM DAC
+
         HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_8B_R, myDacVal);
 
         i_t++;
@@ -405,7 +398,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
             i_t = 0;
     }
 }
-
 /* USER CODE END 4 */
 
 /**

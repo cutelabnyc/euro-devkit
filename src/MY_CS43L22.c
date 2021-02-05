@@ -1,4 +1,3 @@
-
 /*
 Library:					STM32F4 Audio Codec - CS43L22
 Written by:				Mohamed Yaqoob (MYaqoobEmbedded YouTube Channel)
