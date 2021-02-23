@@ -19,11 +19,11 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include <stm32f4xx.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "codec/CS43L22.h"
+#include <stdlib.h>
 #include "uexkull.h"
 #include <math.h>
 
@@ -78,7 +78,7 @@ uint16_t i_t;
 // uexkull_t uexkull;
 
 uint32_t myDacVal;
-uint16_t dataI2S[512];
+uint16_t dataI2S[1024];
 /* USER CODE END 0 */
 
 /**
@@ -126,8 +126,8 @@ int main(void)
     {
         // mySinVal = UX_process(&uexkull, 0.5, 1000);
         mySinVal = sinf(i * 2 * PI * sample_dt);
-        dataI2S[i * 2] = (mySinVal + 1.0f) * 8192;
-        dataI2S[i * 2 + 1] = dataI2S[i * 2];
+        dataI2S[i * 2] = (mySinVal + 1) * 8192;
+        dataI2S[i * 2 + 1] = (mySinVal + 1) * 8192;
     }
 
     HAL_I2S_Transmit_DMA(&hi2s3, (uint16_t *)dataI2S, sample_N * 2);
@@ -329,7 +329,7 @@ void Error_Handler(void)
 {
     /* USER CODE BEGIN Error_Handler_Debug */
     /* User can add his own implementation to report the HAL error return state */
-    // __disable_irq();
+    __disable_irq();
     while (1)
     {
     }

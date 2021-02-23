@@ -59,10 +59,6 @@ typedef enum
     MODE_ANALOG,
 } CS43_MODE;
 
-//(3): List of the functions prototypes
-//------------ Static functions ------------//
-static void write_register(uint8_t reg, uint8_t *data);
-static void read_register(uint8_t reg, uint8_t *data);
 //------------ Public functions ------------//
 void CS43_Init(I2C_HandleTypeDef i2c_handle, CS43_MODE outputMode);
 void CS43_Enable_RightLeft(uint8_t side);
