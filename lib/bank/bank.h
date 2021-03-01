@@ -8,7 +8,7 @@
 #define BANK_H
 
 #include <cuteop.h>
-#include "globals.h"
+// #include "globals.h"
 
 /**
  * waveform_t: Waveforms selection for bank oscillators
