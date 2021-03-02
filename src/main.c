@@ -30,7 +30,7 @@
 #define PI 3.14159f
 
 #define F_SAMPLE 48000.0f
-#define F_OUT 440.0f
+#define F_OUT 100.0f
 
 /* USER CODE END Includes */
 
@@ -75,7 +75,7 @@ float sample_dt;
 uint16_t sample_N;
 uint16_t i_t;
 
-// uexkull_t uexkull;
+uexkull_t uexkull;
 
 uint32_t myDacVal;
 uint16_t dataI2S[1024];
@@ -114,7 +114,7 @@ int main(void)
     MX_I2C1_Init();
     MX_I2S3_Init();
 
-    // UX_init(&uexkull, 50000);
+    UX_init(&uexkull, 48000);
 
     /* USER CODE BEGIN 2 */
     CS43_Init(hi2c1, MODE_I2S);
@@ -124,7 +124,7 @@ int main(void)
 
     for (uint16_t i = 0; i < sample_N; i++)
     {
-        // mySinVal = UX_process(&uexkull, 0.5, 1000);
+        // mySinVal = UX_process(&uexkull, 0.5, 100);
         mySinVal = sinf(i * 2 * PI * sample_dt);
         dataI2S[i * 2] = (mySinVal + 1) * 8192;
         dataI2S[i * 2 + 1] = (mySinVal + 1) * 8192;
@@ -141,7 +141,6 @@ int main(void)
     /* USER CODE BEGIN WHILE */
     while (1)
     {
-        printf("Hello\n");
     }
     /* USER CODE END 3 */
 }
