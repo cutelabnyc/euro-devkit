@@ -8,15 +8,15 @@ void UX_init(uexkull_t *self, float samplerate)
         BK_init(&(self->centralBanks[i]),
                 NUM_OSC,
                 samplerate,
-                200.0f,
+                440.0f,
                 0.5f,
                 SIN);
 
         BK_init(&(self->reactiveBanks[i]),
                 NUM_OSC,
                 samplerate,
-                1.0f,
-                1.0f,
+                440.0f,
+                0.5f,
                 SIN);
     }
 }

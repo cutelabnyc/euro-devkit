@@ -23,6 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "codec/CS43L22.h"
+#include "audioI2S.h"
 #include <stdlib.h>
 #include "uexkull.h"
 #include <math.h>
@@ -30,7 +31,7 @@
 #define PI 3.14159f
 
 #define F_SAMPLE 48000.0f
-#define F_OUT 100.0f
+#define F_OUT 440.0f
 
 /* USER CODE END Includes */
 
@@ -75,10 +76,22 @@ float sample_dt;
 uint16_t sample_N;
 uint16_t i_t;
 
-uexkull_t uexkull;
+static uint16_t audioBuffer[I2S_BUFFER_SIZE];
 
 uint32_t myDacVal;
-uint16_t dataI2S[1024];
+static __IO uint32_t audioRemainSize = 0;
+static uint32_t fileLength = I2S_BUFFER_SIZE;
+static uint32_t playerReadBytes = 0;
+
+typedef enum
+{
+    PLAYER_CONTROL_Idle,
+    PLAYER_CONTROL_HalfBuffer,
+    PLAYER_CONTROL_FullBuffer,
+} PLAYER_CONTROL_e;
+
+static volatile PLAYER_CONTROL_e playerControlSM = PLAYER_CONTROL_Idle;
+
 /* USER CODE END 0 */
 
 /**
@@ -120,20 +133,20 @@ int main(void)
     CS43_Init(hi2c1, MODE_I2S);
     CS43_SetVolume(0);
     CS43_Enable_RightLeft(CS43_RIGHT_LEFT);
-    CS43_Start();
+    audioI2S_setHandle(&hi2s3);
 
-    for (uint16_t i = 0; i < sample_N; i++)
-    {
-        // mySinVal = UX_process(&uexkull, 0.5, 100);
-        mySinVal = sinf(i * 2 * PI * sample_dt);
-        dataI2S[i * 2] = (mySinVal + 1) * 8192;
-        dataI2S[i * 2 + 1] = (mySinVal + 1) * 8192;
-    }
+    // for (uint16_t i = 0; i < 16; i++)
+    // {
+    //     // mySinVal = UX_process(&uexkull, 0.5, 440);
+    //     mySinVal = sinf(i * 2 * PI * (440.0f / 48000.0f));
+    //     dataI2S[i * 2] = (mySinVal + 1) * 8192;
+    //     dataI2S[i * 2 + 1] = (mySinVal + 1) * 8192;
+    // }
 
-    HAL_I2S_Transmit_DMA(&hi2s3, (uint16_t *)dataI2S, sample_N * 2);
-
-    //HAL_DAC_Start(&hdac, DAC_CHANNEL_1);
-    //HAL_TIM_Base_Start_IT(&htim2);
+    audioI2S_setHandle(&hi2s3);
+    audioI2S_init(48000);
+    audioRemainSize = fileLength - playerReadBytes;
+    audioI2S_play((uint16_t *)&audioBuffer[0], I2S_BUFFER_SIZE);
 
     /* USER CODE END 2 */
 
@@ -141,8 +154,76 @@ int main(void)
     /* USER CODE BEGIN WHILE */
     while (1)
     {
+        switch (playerControlSM)
+        {
+        case PLAYER_CONTROL_Idle:
+            break;
+
+        case PLAYER_CONTROL_HalfBuffer:
+            playerReadBytes = 0;
+            playerControlSM = PLAYER_CONTROL_Idle;
+            // TODO: Translate f_read function into UX_process() -> audioBuffer
+            // f_read(&wavFile, &audioBuffer[0], I2S_BUFFER_SIZE / 2, &playerReadBytes);
+            for (int i = 0; i < I2S_BUFFER_SIZE / 4; i++)
+            {
+                audioBuffer[i * 2] = (sinf(i * 2 * PI * (440.0f / 48000.0f)) + 1.0f) * 8192.0f;
+                audioBuffer[i * 2 + 1] = (sinf(i * 2 * PI * (440.0f / 48000.0f)) + 1.0f) * 8192.0f;
+
+                playerReadBytes++;
+                if (audioRemainSize > (I2S_BUFFER_SIZE / 2))
+                {
+                    audioRemainSize -= playerReadBytes;
+                }
+                else
+                {
+                    audioRemainSize = 0;
+                    playerReadBytes = 0;
+                }
+            }
+
+            break;
+
+        case PLAYER_CONTROL_FullBuffer:
+            playerReadBytes = 0;
+            playerControlSM = PLAYER_CONTROL_Idle;
+            // TODO: Translate f_read function into UX_process() -> audioBuffer
+            // f_read(&wavFile, &audioBuffer[I2S_BUFFER_SIZE / 2], I2S_BUFFER_SIZE / 2, &playerReadBytes);
+            for (int i = 0; i < I2S_BUFFER_SIZE / 4; i++)
+            {
+                // audioBuffer[(I2S_BUFFER_SIZE / 4) + i * 2] = (sinf(i * 2 * PI * (440.0f / 48000.0f)) + 1.0f) * 8192.0f;
+                // audioBuffer[(I2S_BUFFER_SIZE / 4) + i * 2 + 1] = (sinf(i * 2 * PI * (440.0f / 48000.0f)) + 1.0f) * 8192.0f;
+
+                playerReadBytes++;
+                if (audioRemainSize > (I2S_BUFFER_SIZE / 2))
+                {
+                    audioRemainSize -= playerReadBytes;
+                }
+                else
+                {
+                    audioRemainSize = 0;
+                    playerReadBytes = 0;
+                }
+            }
+            break;
+        }
     }
+
+    audioI2S_stop();
+
     /* USER CODE END 3 */
+}
+
+/**
+ * @brief Half/Full transfer Audio callback for buffer management
+ */
+void audioI2S_halfTransfer_Callback(void)
+{
+    playerControlSM = PLAYER_CONTROL_HalfBuffer;
+}
+void audioI2S_fullTransfer_Callback(void)
+{
+    playerControlSM = PLAYER_CONTROL_FullBuffer;
+    audioI2S_changeBuffer((uint16_t *)&audioBuffer[0], I2S_BUFFER_SIZE / 2);
 }
 
 /**

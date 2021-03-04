@@ -12,7 +12,7 @@
 #define UEXKULL_H
 
 #define NUM_BANKS 1
-#define NUM_OSC 20
+#define NUM_OSC 5
 #define MAX_FREQ 20000
 
 #include <cuteop.h>

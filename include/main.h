@@ -30,10 +30,13 @@ extern "C"
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
-#include "stm32f4xx_hal.h"
+#include "uexkull.h"
+
+#define I2S_BUFFER_SIZE 32000
 
     /* Private includes ----------------------------------------------------------*/
     /* USER CODE BEGIN Includes */
+    uexkull_t uexkull;
 
     /* USER CODE END Includes */
 
