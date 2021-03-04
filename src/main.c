@@ -23,13 +23,19 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "codec/CS43L22.h"
+#include <stdlib.h>
+#include "uexkull.h"
 #include <math.h>
+#include <string.h>
 
 #define PI 3.14159f
 
-#define F_SAMPLE 50000.0f
+#define F_SAMPLE 48000.0f
 #define F_OUT 440.0f
 
+// sinus oszillator
+float osc_phi = 0;
+float osc_phi_inc = F_OUT / F_SAMPLE; // generating 440HZ
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -47,14 +53,10 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-DAC_HandleTypeDef hdac;
-
 I2C_HandleTypeDef hi2c1;
 
 I2S_HandleTypeDef hi2s3;
 DMA_HandleTypeDef hdma_spi3_tx;
-
-TIM_HandleTypeDef htim2;
 
 /* USER CODE BEGIN PV */
 
@@ -64,23 +66,20 @@ TIM_HandleTypeDef htim2;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
-static void MX_DAC_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_I2S3_Init(void);
-static void MX_TIM2_Init(void);
+static void StartAudioBuffers(I2S_HandleTypeDef *hi2s);
+static void FillBuffer(uint32_t *buffer, uint16_t len);
+
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-float mySinVal;
-float sample_dt;
-uint16_t sample_N;
-uint16_t i_t;
 
-uint32_t myDacVal;
-uint16_t I2S_dummy[4];
+static uint32_t audioBuffer[I2S_BUFFER_SIZE];
+
 /* USER CODE END 0 */
 
 /**
@@ -90,8 +89,6 @@ uint16_t I2S_dummy[4];
 int main(void)
 {
     /* USER CODE BEGIN 1 */
-    sample_dt = F_OUT / F_SAMPLE;
-    sample_N = F_SAMPLE / F_OUT;
     /* USER CODE END 1 */
 
     /* MCU Configuration--------------------------------------------------------*/
@@ -113,31 +110,71 @@ int main(void)
     /* Initialize all configured peripherals */
     MX_GPIO_Init();
     MX_DMA_Init();
-    MX_DAC_Init();
     MX_I2C1_Init();
     MX_I2S3_Init();
-    MX_TIM2_Init();
+
+    UX_init(&uexkull, 48000);
+
     /* USER CODE BEGIN 2 */
-    CS43_Init(hi2c1, MODE_ANALOG);
-    CS43_SetVolume(20);
+    CS43_Init(hi2c1, MODE_I2S);
+    CS43_SetVolume(0);
     CS43_Enable_RightLeft(CS43_RIGHT_LEFT);
-    CS43_Start();
 
-    HAL_I2S_Transmit_DMA(&hi2s3, (uint16_t *)I2S_dummy, 4);
-
-    HAL_DAC_Start(&hdac, DAC_CHANNEL_1);
-    HAL_TIM_Base_Start_IT(&htim2);
     /* USER CODE END 2 */
+    StartAudioBuffers(&hi2s3);
 
     /* Infinite loop */
     /* USER CODE BEGIN WHILE */
     while (1)
     {
-        /* USER CODE END WHILE */
-
-        /* USER CODE BEGIN 3 */
     }
+
     /* USER CODE END 3 */
+}
+
+void StartAudioBuffers(I2S_HandleTypeDef *hi2s)
+{
+    // clear buffer
+    memset(audioBuffer, 0, sizeof(audioBuffer));
+    // start circular dma
+    HAL_I2S_Transmit_DMA(hi2s, (uint16_t *)audioBuffer, I2S_BUFFER_SIZE << 1);
+}
+
+void FillBuffer(uint32_t *buffer, uint16_t len)
+{
+    float a;
+    int16_t y;
+    uint16_t c;
+    for (c = 0; c < len; c++)
+    {
+        // calculate sin
+        a = (float)sin(osc_phi * 6.2832f) * 0.20f;
+        // a = (float)sin(UX_process(&uexkull, 0.5, 440) * 6.2832f) * 0.20f;
+        osc_phi += osc_phi_inc;
+        osc_phi -= (float)((uint16_t)osc_phi);
+        //   float to integer
+        y = (int16_t)(a * 32767.0f);
+        // auf beide kanäle
+        buffer[c] = ((uint32_t)(uint16_t)y) << 0 |
+                    ((uint32_t)(uint16_t)y) << 16;
+    }
+}
+
+/**
+ * @brief Half / Full Buffer DMA Audio Callbacks
+ * @retval None
+ */
+void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
+{
+    // playerControlSM = PLAYER_CONTROL_HalfBuffer;
+    FillBuffer(&(audioBuffer[0]), I2S_BUFFER_SIZE >> 1);
+}
+
+void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s)
+{
+    // playerControlSM = PLAYER_CONTROL_FullBuffer;
+    // audioI2S_changeBuffer((uint16_t *)&audioBuffer[0], I2S_BUFFER_SIZE / 2);
+    FillBuffer(&(audioBuffer[I2S_BUFFER_SIZE >> 1]), I2S_BUFFER_SIZE >> 1);
 }
 
 /**
@@ -188,43 +225,6 @@ void SystemClock_Config(void)
     {
         Error_Handler();
     }
-}
-
-/**
-  * @brief DAC Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_DAC_Init(void)
-{
-
-    /* USER CODE BEGIN DAC_Init 0 */
-
-    /* USER CODE END DAC_Init 0 */
-
-    DAC_ChannelConfTypeDef sConfig = {0};
-
-    /* USER CODE BEGIN DAC_Init 1 */
-
-    /* USER CODE END DAC_Init 1 */
-    /** DAC Initialization
-  */
-    hdac.Instance = DAC;
-    if (HAL_DAC_Init(&hdac) != HAL_OK)
-    {
-        Error_Handler();
-    }
-    /** DAC channel OUT1 config
-  */
-    sConfig.DAC_Trigger = DAC_TRIGGER_NONE;
-    sConfig.DAC_OutputBuffer = DAC_OUTPUTBUFFER_ENABLE;
-    if (HAL_DAC_ConfigChannel(&hdac, &sConfig, DAC_CHANNEL_1) != HAL_OK)
-    {
-        Error_Handler();
-    }
-    /* USER CODE BEGIN DAC_Init 2 */
-
-    /* USER CODE END DAC_Init 2 */
 }
 
 /**
@@ -294,50 +294,6 @@ static void MX_I2S3_Init(void)
 }
 
 /**
-  * @brief TIM2 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_TIM2_Init(void)
-{
-
-    /* USER CODE BEGIN TIM2_Init 0 */
-
-    /* USER CODE END TIM2_Init 0 */
-
-    TIM_ClockConfigTypeDef sClockSourceConfig = {0};
-    TIM_MasterConfigTypeDef sMasterConfig = {0};
-
-    /* USER CODE BEGIN TIM2_Init 1 */
-
-    /* USER CODE END TIM2_Init 1 */
-    htim2.Instance = TIM2;
-    htim2.Init.Prescaler = 84 - 1;
-    htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-    htim2.Init.Period = 20 - 1;
-    htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-    htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-    if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
-    {
-        Error_Handler();
-    }
-    sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-    if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
-    {
-        Error_Handler();
-    }
-    sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
-    sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-    if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
-    {
-        Error_Handler();
-    }
-    /* USER CODE BEGIN TIM2_Init 2 */
-
-    /* USER CODE END TIM2_Init 2 */
-}
-
-/**
   * Enable DMA controller clock
   */
 static void MX_DMA_Init(void)
@@ -381,23 +337,20 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-    UNUSED(htim);
-
-    if (htim->Instance == TIM2)
-    {
-        mySinVal = sinf(i_t * 2 * PI * sample_dt);
-
-        myDacVal = (mySinVal + 1) * 127;
-
-        HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_8B_R, myDacVal);
-
-        i_t++;
-        if (i_t >= sample_N)
-            i_t = 0;
-    }
-}
+/*void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
+	UNUSED(htim);
+	
+	if(htim->Instance == TIM2){
+		mySinVal = sinf(i_t * 2 * PI * sample_dt);
+		
+		myDacVal = (mySinVal + 1) * 127;
+		
+		HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_8B_R, myDacVal);
+		
+		i_t++;
+		if(i_t >= sample_N) i_t = 0;
+	}
+}*/
 /* USER CODE END 4 */
 
 /**
