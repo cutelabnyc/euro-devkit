@@ -23,16 +23,19 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "codec/CS43L22.h"
-#include "audioI2S.h"
 #include <stdlib.h>
 #include "uexkull.h"
 #include <math.h>
+#include <string.h>
 
 #define PI 3.14159f
 
 #define F_SAMPLE 48000.0f
 #define F_OUT 440.0f
 
+// sinus oszillator
+float osc_phi = 0;
+float osc_phi_inc = F_OUT / F_SAMPLE; // generating 440HZ
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -65,32 +68,17 @@ static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_I2S3_Init(void);
+static void StartAudioBuffers(I2S_HandleTypeDef *hi2s);
+static void FillBuffer(uint32_t *buffer, uint16_t len);
+
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-float mySinVal;
-float sample_dt;
-uint16_t sample_N;
-uint16_t i_t;
 
-static uint16_t audioBuffer[I2S_BUFFER_SIZE];
-
-uint32_t myDacVal;
-static __IO uint32_t audioRemainSize = 0;
-static uint32_t fileLength = I2S_BUFFER_SIZE;
-static uint32_t playerReadBytes = 0;
-
-typedef enum
-{
-    PLAYER_CONTROL_Idle,
-    PLAYER_CONTROL_HalfBuffer,
-    PLAYER_CONTROL_FullBuffer,
-} PLAYER_CONTROL_e;
-
-static volatile PLAYER_CONTROL_e playerControlSM = PLAYER_CONTROL_Idle;
+static uint32_t audioBuffer[I2S_BUFFER_SIZE];
 
 /* USER CODE END 0 */
 
@@ -101,8 +89,6 @@ static volatile PLAYER_CONTROL_e playerControlSM = PLAYER_CONTROL_Idle;
 int main(void)
 {
     /* USER CODE BEGIN 1 */
-    sample_dt = F_OUT / F_SAMPLE;
-    sample_N = F_SAMPLE / F_OUT;
     /* USER CODE END 1 */
 
     /* MCU Configuration--------------------------------------------------------*/
@@ -133,97 +119,62 @@ int main(void)
     CS43_Init(hi2c1, MODE_I2S);
     CS43_SetVolume(0);
     CS43_Enable_RightLeft(CS43_RIGHT_LEFT);
-    audioI2S_setHandle(&hi2s3);
-
-    // for (uint16_t i = 0; i < 16; i++)
-    // {
-    //     // mySinVal = UX_process(&uexkull, 0.5, 440);
-    //     mySinVal = sinf(i * 2 * PI * (440.0f / 48000.0f));
-    //     dataI2S[i * 2] = (mySinVal + 1) * 8192;
-    //     dataI2S[i * 2 + 1] = (mySinVal + 1) * 8192;
-    // }
-
-    audioI2S_setHandle(&hi2s3);
-    audioI2S_init(48000);
-    audioRemainSize = fileLength - playerReadBytes;
-    audioI2S_play((uint16_t *)&audioBuffer[0], I2S_BUFFER_SIZE);
 
     /* USER CODE END 2 */
+    StartAudioBuffers(&hi2s3);
 
     /* Infinite loop */
     /* USER CODE BEGIN WHILE */
     while (1)
     {
-        switch (playerControlSM)
-        {
-        case PLAYER_CONTROL_Idle:
-            break;
-
-        case PLAYER_CONTROL_HalfBuffer:
-            playerReadBytes = 0;
-            playerControlSM = PLAYER_CONTROL_Idle;
-            // TODO: Translate f_read function into UX_process() -> audioBuffer
-            // f_read(&wavFile, &audioBuffer[0], I2S_BUFFER_SIZE / 2, &playerReadBytes);
-            for (int i = 0; i < I2S_BUFFER_SIZE / 4; i++)
-            {
-                audioBuffer[i * 2] = (sinf(i * 2 * PI * (440.0f / 48000.0f)) + 1.0f) * 8192.0f;
-                audioBuffer[i * 2 + 1] = (sinf(i * 2 * PI * (440.0f / 48000.0f)) + 1.0f) * 8192.0f;
-
-                playerReadBytes++;
-                if (audioRemainSize > (I2S_BUFFER_SIZE / 2))
-                {
-                    audioRemainSize -= playerReadBytes;
-                }
-                else
-                {
-                    audioRemainSize = 0;
-                    playerReadBytes = 0;
-                }
-            }
-
-            break;
-
-        case PLAYER_CONTROL_FullBuffer:
-            playerReadBytes = 0;
-            playerControlSM = PLAYER_CONTROL_Idle;
-            // TODO: Translate f_read function into UX_process() -> audioBuffer
-            // f_read(&wavFile, &audioBuffer[I2S_BUFFER_SIZE / 2], I2S_BUFFER_SIZE / 2, &playerReadBytes);
-            for (int i = 0; i < I2S_BUFFER_SIZE / 4; i++)
-            {
-                // audioBuffer[(I2S_BUFFER_SIZE / 4) + i * 2] = (sinf(i * 2 * PI * (440.0f / 48000.0f)) + 1.0f) * 8192.0f;
-                // audioBuffer[(I2S_BUFFER_SIZE / 4) + i * 2 + 1] = (sinf(i * 2 * PI * (440.0f / 48000.0f)) + 1.0f) * 8192.0f;
-
-                playerReadBytes++;
-                if (audioRemainSize > (I2S_BUFFER_SIZE / 2))
-                {
-                    audioRemainSize -= playerReadBytes;
-                }
-                else
-                {
-                    audioRemainSize = 0;
-                    playerReadBytes = 0;
-                }
-            }
-            break;
-        }
     }
-
-    audioI2S_stop();
 
     /* USER CODE END 3 */
 }
 
-/**
- * @brief Half/Full transfer Audio callback for buffer management
- */
-void audioI2S_halfTransfer_Callback(void)
+void StartAudioBuffers(I2S_HandleTypeDef *hi2s)
 {
-    playerControlSM = PLAYER_CONTROL_HalfBuffer;
+    // clear buffer
+    memset(audioBuffer, 0, sizeof(audioBuffer));
+    // start circular dma
+    HAL_I2S_Transmit_DMA(hi2s, (uint16_t *)audioBuffer, I2S_BUFFER_SIZE << 1);
 }
-void audioI2S_fullTransfer_Callback(void)
+
+void FillBuffer(uint32_t *buffer, uint16_t len)
 {
-    playerControlSM = PLAYER_CONTROL_FullBuffer;
-    audioI2S_changeBuffer((uint16_t *)&audioBuffer[0], I2S_BUFFER_SIZE / 2);
+    float a;
+    int16_t y;
+    uint16_t c;
+    for (c = 0; c < len; c++)
+    {
+        // calculate sin
+        a = (float)sin(osc_phi * 6.2832f) * 0.20f;
+        // a = (float)sin(UX_process(&uexkull, 0.5, 440) * 6.2832f) * 0.20f;
+        osc_phi += osc_phi_inc;
+        osc_phi -= (float)((uint16_t)osc_phi);
+        //   float to integer
+        y = (int16_t)(a * 32767.0f);
+        // auf beide kanäle
+        buffer[c] = ((uint32_t)(uint16_t)y) << 0 |
+                    ((uint32_t)(uint16_t)y) << 16;
+    }
+}
+
+/**
+ * @brief Half / Full Buffer DMA Audio Callbacks
+ * @retval None
+ */
+void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
+{
+    // playerControlSM = PLAYER_CONTROL_HalfBuffer;
+    FillBuffer(&(audioBuffer[0]), I2S_BUFFER_SIZE >> 1);
+}
+
+void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s)
+{
+    // playerControlSM = PLAYER_CONTROL_FullBuffer;
+    // audioI2S_changeBuffer((uint16_t *)&audioBuffer[0], I2S_BUFFER_SIZE / 2);
+    FillBuffer(&(audioBuffer[I2S_BUFFER_SIZE >> 1]), I2S_BUFFER_SIZE >> 1);
 }
 
 /**
