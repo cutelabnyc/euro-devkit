@@ -32,7 +32,7 @@ extern "C"
 #include "stm32f4xx_hal.h"
 #include "uexkull.h"
 
-#define I2S_BUFFER_SIZE 64
+#define I2S_BUFFER_SIZE 2048
 
     /* Private includes ----------------------------------------------------------*/
     /* USER CODE BEGIN Includes */

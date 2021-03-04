@@ -12,7 +12,7 @@
 #define UEXKULL_H
 
 #define NUM_BANKS 1
-#define NUM_OSC 1
+#define NUM_OSC 2
 #define MAX_FREQ 20000
 
 #include <cuteop.h>
@@ -24,7 +24,8 @@
 typedef struct uexkull
 {
     bank_t centralBanks[NUM_BANKS];
-    bank_t reactiveBanks[NUM_BANKS];
+    // NOTE: This'll be for LFOs
+    // bank_t reactiveBanks[NUM_BANKS];
     float freqs[NUM_OSC];
     //sequence_t f;
 } uexkull_t;

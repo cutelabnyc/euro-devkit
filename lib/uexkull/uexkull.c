@@ -4,7 +4,6 @@ void UX_init(uexkull_t *self, float samplerate)
 {
     for (int i = 0; i < NUM_BANKS; i++)
     {
-
         BK_init(&(self->centralBanks[i]),
                 NUM_OSC,
                 samplerate,
@@ -12,12 +11,13 @@ void UX_init(uexkull_t *self, float samplerate)
                 0.5f,
                 SIN);
 
-        BK_init(&(self->reactiveBanks[i]),
-                NUM_OSC,
-                samplerate,
-                440.0f,
-                0.5f,
-                SIN);
+        // NOTE: This'll be for LFOs
+        // BK_init(&(self->reactiveBanks[i]),
+        //         NUM_OSC,
+        //         samplerate,
+        //         440.0f,
+        //         0.5f,
+        //         SIN);
     }
 }
 

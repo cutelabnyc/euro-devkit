@@ -36,6 +36,7 @@
 // sinus oszillator
 float osc_phi = 0;
 float osc_phi_inc = F_OUT / F_SAMPLE; // generating 440HZ
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -79,6 +80,7 @@ static void FillBuffer(uint32_t *buffer, uint16_t len);
 /* USER CODE BEGIN 0 */
 
 static uint32_t audioBuffer[I2S_BUFFER_SIZE];
+static uint32_t dspBuffer[I2S_BUFFER_SIZE / 2];
 
 /* USER CODE END 0 */
 
@@ -112,6 +114,7 @@ int main(void)
     MX_DMA_Init();
     MX_I2C1_Init();
     MX_I2S3_Init();
+    // HAL_I2S_MspInit(&hi2s3);
 
     UX_init(&uexkull, 48000);
 
@@ -148,16 +151,17 @@ void FillBuffer(uint32_t *buffer, uint16_t len)
     for (c = 0; c < len; c++)
     {
         // calculate sin
-        a = (float)sin(osc_phi * 6.2832f) * 0.20f;
-        // a = (float)sin(UX_process(&uexkull, 0.5, 440) * 6.2832f) * 0.20f;
-        osc_phi += osc_phi_inc;
-        osc_phi -= (float)((uint16_t)osc_phi);
+        // a = (float)sin(osc_phi * 6.2832f) * 0.20f;
+        a = (float)UX_process(&uexkull, 0.5, 440);
+        // osc_phi += osc_phi_inc;
+        // osc_phi -= (float)((uint16_t)osc_phi);
         //   float to integer
         y = (int16_t)(a * 32767.0f);
-        // auf beide kanäle
-        buffer[c] = ((uint32_t)(uint16_t)y) << 0 |
-                    ((uint32_t)(uint16_t)y) << 16;
+        dspBuffer[c] = ((uint32_t)(uint16_t)y) << 0 |
+                       ((uint32_t)(uint16_t)y) << 16;
     }
+
+    memcpy(buffer, dspBuffer, len << 2);
 }
 
 /**
@@ -166,14 +170,11 @@ void FillBuffer(uint32_t *buffer, uint16_t len)
  */
 void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
 {
-    // playerControlSM = PLAYER_CONTROL_HalfBuffer;
     FillBuffer(&(audioBuffer[0]), I2S_BUFFER_SIZE >> 1);
 }
 
 void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s)
 {
-    // playerControlSM = PLAYER_CONTROL_FullBuffer;
-    // audioI2S_changeBuffer((uint16_t *)&audioBuffer[0], I2S_BUFFER_SIZE / 2);
     FillBuffer(&(audioBuffer[I2S_BUFFER_SIZE >> 1]), I2S_BUFFER_SIZE >> 1);
 }
 
@@ -335,23 +336,6 @@ static void MX_GPIO_Init(void)
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 }
-
-/* USER CODE BEGIN 4 */
-/*void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
-	UNUSED(htim);
-	
-	if(htim->Instance == TIM2){
-		mySinVal = sinf(i_t * 2 * PI * sample_dt);
-		
-		myDacVal = (mySinVal + 1) * 127;
-		
-		HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_8B_R, myDacVal);
-		
-		i_t++;
-		if(i_t >= sample_N) i_t = 0;
-	}
-}*/
-/* USER CODE END 4 */
 
 /**
   * @brief  This function is executed in case of error occurrence.
