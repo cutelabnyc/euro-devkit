@@ -30,13 +30,6 @@
 
 #define PI 3.14159f
 
-#define F_SAMPLE 48000.0f
-#define F_OUT 440.0f
-
-// sinus oszillator
-float osc_phi = 0;
-float osc_phi_inc = F_OUT / F_SAMPLE; // generating 440HZ
-
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -84,6 +77,9 @@ static uint32_t dspBuffer[I2S_BUFFER_SIZE / 2];
 
 /* USER CODE END 0 */
 
+float osc_phi = 0;
+float osc_phi_inc = 440.0f / 48000.0f;
+
 /**
   * @brief  The application entry point.
   * @retval int
@@ -114,7 +110,6 @@ int main(void)
     MX_DMA_Init();
     MX_I2C1_Init();
     MX_I2S3_Init();
-    // HAL_I2S_MspInit(&hi2s3);
 
     UX_init(&uexkull, 48000);
 
@@ -122,6 +117,7 @@ int main(void)
     CS43_Init(hi2c1, MODE_I2S);
     CS43_SetVolume(0);
     CS43_Enable_RightLeft(CS43_RIGHT_LEFT);
+    CS43_Start();
 
     /* USER CODE END 2 */
     StartAudioBuffers(&hi2s3);
@@ -151,10 +147,10 @@ void FillBuffer(uint32_t *buffer, uint16_t len)
     for (c = 0; c < len; c++)
     {
         // calculate sin
-        // a = (float)sin(osc_phi * 6.2832f) * 0.20f;
-        a = (float)UX_process(&uexkull, 0.5, 440);
-        // osc_phi += osc_phi_inc;
-        // osc_phi -= (float)((uint16_t)osc_phi);
+        a = (float)sin(osc_phi * 6.2832f) * 0.20f;
+        // a = (float)UX_process(&uexkull, 0.5, 200);
+        osc_phi += osc_phi_inc;
+        osc_phi -= (float)((uint16_t)osc_phi);
         //   float to integer
         y = (int16_t)(a * 32767.0f);
         dspBuffer[c] = ((uint32_t)(uint16_t)y) << 0 |
