@@ -10,21 +10,11 @@ void UX_init(uexkull_t *self, float samplerate)
                 440.0f,
                 0.5f,
                 SIN);
-
-        // NOTE: This'll be for LFOs
-        // BK_init(&(self->reactiveBanks[i]),
-        //         NUM_OSC,
-        //         samplerate,
-        //         440.0f,
-        //         0.5f,
-        //         SIN);
     }
 }
 
-void getFreqVector(uexkull_t *self, float fundamental, float mult)
+void getFreqVector(uexkull_t *self, float mult)
 {
-    self->freqs[0] = fundamental;
-
     for (int i = 1; i < NUM_OSC; i++)
     {
         self->freqs[i] = (self->freqs[i - 1] + (self->freqs[i - 1] * mult));
@@ -36,10 +26,15 @@ void getFreqVector(uexkull_t *self, float fundamental, float mult)
     }
 }
 
-float UX_process(uexkull_t *self, float mult, float freq)
+void UX_setFreq(uexkull_t *self, float freq)
+{
+    self->freqs[0] = freq;
+}
+
+float UX_process(uexkull_t *self)
 {
     float sig = 0;
-    getFreqVector(self, freq, mult);
+    getFreqVector(self, 0.5);
 
     for (int i = 0; i < NUM_BANKS; i++)
     {

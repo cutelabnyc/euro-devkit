@@ -16,12 +16,8 @@
   *
   ******************************************************************************
   */
-/* USER CODE END Header */
-/* Includes ------------------------------------------------------------------*/
 #include "main.h"
 
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
 #include "codec/CS43L22.h"
 #include <stdlib.h>
 #include "uexkull.h"
@@ -30,34 +26,12 @@
 
 #define PI 3.14159f
 
-/* USER CODE END Includes */
-
-/* Private typedef -----------------------------------------------------------*/
-/* USER CODE BEGIN PTD */
-
-/* USER CODE END PTD */
-
-/* Private define ------------------------------------------------------------*/
-/* USER CODE BEGIN PD */
-/* USER CODE END PD */
-
-/* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN PM */
-
-/* USER CODE END PM */
-
-/* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c1;
 I2S_HandleTypeDef hi2s3;
 DMA_HandleTypeDef hdma_spi3_tx;
 
 ADC_HandleTypeDef hadc1;
 
-/* USER CODE BEGIN PV */
-
-/* USER CODE END PV */
-
-/* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
@@ -68,22 +42,11 @@ static void MX_ADC1_Init(void);
 static void StartAudioBuffers(I2S_HandleTypeDef *hi2s);
 static void FillBuffer(uint32_t *buffer, uint16_t len);
 
-/* USER CODE BEGIN PFP */
-
-/* USER CODE END PFP */
-
-/* Private user code ---------------------------------------------------------*/
-/* USER CODE BEGIN 0 */
-
 static uint32_t audioBuffer[I2S_BUFFER_SIZE];
 static uint32_t dspBuffer[I2S_BUFFER_SIZE / 2];
 
-/* USER CODE END 0 */
-
 float osc_phi = 0;
 float osc_phi_inc = 440.0f / 48000.0f;
-
-uint16_t adcValue;
 
 /**
   * @brief  The application entry point.
@@ -91,24 +54,10 @@ uint16_t adcValue;
   */
 int main(void)
 {
-    /* USER CODE BEGIN 1 */
-    /* USER CODE END 1 */
 
-    /* MCU Configuration--------------------------------------------------------*/
-
-    /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
     HAL_Init();
 
-    /* USER CODE BEGIN Init */
-
-    /* USER CODE END Init */
-
-    /* Configure the system clock */
     SystemClock_Config();
-
-    /* USER CODE BEGIN SysInit */
-
-    /* USER CODE END SysInit */
 
     /* Initialize all configured peripherals */
     MX_GPIO_Init();
@@ -119,31 +68,24 @@ int main(void)
 
     UX_init(&uexkull, 48000);
 
-    /* USER CODE BEGIN 2 */
     CS43_Init(hi2c1, MODE_I2S);
     CS43_SetVolume(0);
     CS43_Enable_RightLeft(CS43_RIGHT_LEFT);
     CS43_Start();
 
-    /* USER CODE END 2 */
     StartAudioBuffers(&hi2s3);
 
     /* Infinite loop */
-    /* USER CODE BEGIN WHILE */
     while (1)
     {
         HAL_ADC_Start(&hadc1);
-        /* USER CODE END WHILE */
-        if (HAL_ADC_PollForConversion(&hadc1, 5) == HAL_OK)
+        if (HAL_ADC_PollForConversion(&hadc1, 1) == HAL_OK)
         {
-            adcValue = HAL_ADC_GetValue(&hadc1);
+            UX_setFreq(&uexkull, HAL_ADC_GetValue(&hadc1));
         }
         // HAL_Delay(10);
-        /* USER CODE BEGIN 3 */
         HAL_ADC_Stop(&hadc1);
     }
-
-    /* USER CODE END 3 */
 }
 
 void StartAudioBuffers(I2S_HandleTypeDef *hi2s)
@@ -160,15 +102,15 @@ void FillBuffer(uint32_t *buffer, uint16_t len)
     int16_t y;
     uint16_t c;
 
-    osc_phi_inc = (float)adcValue / 48000.0f;
+    // osc_phi_inc = (float)adcValue / 48000.0f;
 
     for (c = 0; c < len; c++)
     {
         // calculate sin
-        a = (float)sin(osc_phi * 6.2832f) * 0.20f;
-        // a = (float)UX_process(&uexkull, 0.5, 200);
-        osc_phi += osc_phi_inc;
-        osc_phi -= (float)((uint16_t)osc_phi);
+        // a = (float)sin(osc_phi * 6.2832f) * 0.20f;
+        a = (float)UX_process(&uexkull);
+        // osc_phi += osc_phi_inc;
+        // osc_phi -= (float)((uint16_t)osc_phi);
         //   float to integer
         y = (int16_t)(a * 32767.0f);
         dspBuffer[c] = ((uint32_t)(uint16_t)y) << 0 |

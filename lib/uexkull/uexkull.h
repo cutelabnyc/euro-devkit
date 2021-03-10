@@ -12,7 +12,7 @@
 #define UEXKULL_H
 
 #define NUM_BANKS 1
-#define NUM_OSC 3
+#define NUM_OSC 2
 #define MAX_FREQ 20000
 
 #include <cuteop.h>
@@ -24,15 +24,12 @@
 typedef struct uexkull
 {
     bank_t centralBanks[NUM_BANKS];
-    // NOTE: This'll be for LFOs
-    // bank_t reactiveBanks[NUM_BANKS];
     float freqs[NUM_OSC];
     //sequence_t f;
 } uexkull_t;
 
 /**
  * Initialize the 'uexkull' struct
-
  */
 void UX_init(uexkull_t *self,
              float samplerate
@@ -46,12 +43,17 @@ void UX_init(uexkull_t *self,
 void UX_destroy(uexkull_t *self);
 
 /**
+ * Set fundamental frequency
+ */
+void UX_setFreq(uexkull_t *self, float freq);
+
+/**
  * Processes a single sample in the module's IO. The process
  * function acts as a bridge between the Daisy's DSP library
  * and Cute-Op's mathematical sequence generating module.
  *
  * TODO: Add and describe parameters
  */
-float UX_process(uexkull_t *self, float mult, float freq);
+float UX_process(uexkull_t *self);
 
 #endif /* OPPORTUNITY_H */
