@@ -61,11 +61,11 @@ void BK_destroy(bank_t *self);
  * Sets the frequencies of the bank with an incoming
  * array of floats
  */
-void BK_setFrequencyVectors(bank_t *self, float *vector, uint8_t numFreq);
+// void BK_setFrequencyVectors(bank_t *self, float *vector, uint8_t numFreq);
 
 /**
  * Process a single sample from Uexkull
  */
-float BK_process(bank_t *self);
+float BK_process(bank_t *self, float *vector);
 
 #endif /* BANK_H */

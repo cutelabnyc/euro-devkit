@@ -40,13 +40,15 @@ static void MX_I2S3_Init(void);
 static void MX_ADC1_Init(void);
 
 static void StartAudioBuffers(I2S_HandleTypeDef *hi2s);
-static void FillBuffer(uint32_t *buffer, uint16_t len);
+static void FillBuffer(uint32_t *buffer, uint16_t len, bool halfCallBack);
 
 static uint32_t audioBuffer[I2S_BUFFER_SIZE];
 static uint32_t dspBuffer[I2S_BUFFER_SIZE / 2];
 
 float osc_phi = 0;
 float osc_phi_inc = 440.0f / 48000.0f;
+
+int dummy = 0;
 
 /**
   * @brief  The application entry point.
@@ -81,9 +83,9 @@ int main(void)
         HAL_ADC_Start(&hadc1);
         if (HAL_ADC_PollForConversion(&hadc1, 1) == HAL_OK)
         {
-            UX_setFreq(&uexkull, HAL_ADC_GetValue(&hadc1));
+            // UX_setFreq(&uexkull, HAL_ADC_GetValue(&hadc1));
+            UX_setFreq(&uexkull, 440);
         }
-        // HAL_Delay(10);
         HAL_ADC_Stop(&hadc1);
     }
 }
@@ -96,19 +98,37 @@ void StartAudioBuffers(I2S_HandleTypeDef *hi2s)
     HAL_I2S_Transmit_DMA(hi2s, (uint16_t *)audioBuffer, I2S_BUFFER_SIZE << 1);
 }
 
-void FillBuffer(uint32_t *buffer, uint16_t len)
+void FillBuffer(uint32_t *buffer, uint16_t len, bool halfCallBack)
 {
-    float a;
-    int16_t y;
+    float a = 0;
+    int16_t y = 0;
     uint16_t c;
 
-    // osc_phi_inc = (float)adcValue / 48000.0f;
+    // First fill up the buffer in som cheap way
 
+    // Then waste some time
+
+    // for (int i = 0; i < 100000; i++)
+    // {
+    //     dummy += i;
+    // }
+
+    // dspBuffer[0] = dummy;
+
+    // osc_phi_inc = (float)adcValue / 48000.0f;
     for (c = 0; c < len; c++)
     {
         // calculate sin
         // a = (float)sin(osc_phi * 6.2832f) * 0.20f;
         a = (float)UX_process(&uexkull);
+        // if (halfCallBack == true)
+        // {
+        //     a = 1;
+        // }
+        // else
+        // {
+        //     a = 0;
+        // }
         // osc_phi += osc_phi_inc;
         // osc_phi -= (float)((uint16_t)osc_phi);
         //   float to integer
@@ -126,12 +146,12 @@ void FillBuffer(uint32_t *buffer, uint16_t len)
  */
 void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
 {
-    FillBuffer(&(audioBuffer[0]), I2S_BUFFER_SIZE >> 1);
+    FillBuffer(&(audioBuffer[0]), I2S_BUFFER_SIZE >> 1, true);
 }
 
 void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s)
 {
-    FillBuffer(&(audioBuffer[I2S_BUFFER_SIZE >> 1]), I2S_BUFFER_SIZE >> 1);
+    FillBuffer(&(audioBuffer[I2S_BUFFER_SIZE >> 1]), I2S_BUFFER_SIZE >> 1, false);
 }
 
 /**
