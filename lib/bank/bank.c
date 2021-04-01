@@ -30,13 +30,13 @@ void BK_init(bank_t *self,
     }
 }
 
-// void BK_setFrequencyVectors(bank_t *self, float *vector, uint8_t numFreq)
-// {
-//     for (int i = 0; i < numFreq; i++)
-//     {
-//         osc_time(&(self->osc[i]), (float)(vector[i] / (self->_sampleRate / 2)));
-//     }
-// }
+void BK_setFrequencyVectors(bank_t *self, float *vector, uint8_t numFreq)
+{
+    for (int i = 0; i < numFreq; i++)
+    {
+        osc_time(&(self->osc[i]), (float)(vector[i] / (self->_sampleRate / 2)));
+    }
+}
 
 float BK_process(bank_t *self, float *vector)
 {
