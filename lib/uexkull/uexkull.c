@@ -44,7 +44,7 @@ float UX_process(uexkull_t *self)
 
     for (int i = 0; i < NUM_BANKS; i++)
     {
-        BK_setFrequencyVectors(&(self->centralBanks[i]), self->freqs, NUM_OSC);
+        // BK_setFrequencyVectors(&(self->centralBanks[i]), self->freqs, NUM_OSC);
 
         sig += (BK_process(&(self->centralBanks[i]), self->freqs)) / NUM_BANKS;
     }

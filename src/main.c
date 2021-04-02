@@ -20,7 +20,6 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <arm_math.h>
@@ -32,7 +31,8 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
+float osc_phi = 0;
+float osc_phi_inc = 440.0f / 16000.0f;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -69,6 +69,7 @@ volatile int txFullComplete = 0;
 
 // DMA Buffers
 uint16_t rxBuf[BUF_SAMPLES];
+uint16_t genBuf[BUF_SAMPLES];
 uint16_t txBuf[BUF_SAMPLES];
 
 float32_t srcLeft[SAMPLES / 2];
@@ -134,7 +135,7 @@ int main(void)
     /* USER CODE BEGIN 2 */
 
     /* USER CODE END 2 */
-    UX_init(&uexkull, 48000);
+    UX_init(&uexkull, 16000);
     UX_setFreq(&uexkull, 440);
 
     /* Infinite loop */
@@ -165,6 +166,101 @@ int main(void)
         /* USER CODE BEGIN 3 */
     }
     /* USER CODE END 3 */
+}
+
+//
+// Either tx/rx Full or Half complete.
+// b == 0
+//		First Half
+// b == 1
+//		Second Half
+//
+
+void doPassthru(int b)
+{
+    // NOTE: These GPIO functions are just for confirmation on the
+    // oscilliscope that the RX/TX callback is working
+    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_5, GPIO_PIN_SET);
+
+    int startBuf = b * BUF_SAMPLES / 2;
+    int endBuf = startBuf + BUF_SAMPLES / 2;
+
+    // osc_phi_inc = (float)440.0f / 48000.0f;
+    int i = 0;
+
+    // for (int pos = startBuf; pos < endBuf; pos += 4)
+    // {
+
+    //     // float lval = (sin(osc_phi * 6.2832f) + 1.0f) * (RAND_MAX / 2);
+    //     // float rval = (sin(osc_phi * 6.2832f) + 1.0f) * (RAND_MAX / 2);
+
+    //     // osc_phi += osc_phi_inc;
+    //     // osc_phi -= (float)((uint16_t)osc_phi);
+
+    //     // genBuf[pos] = (int)UX_process(&uexkull) >> 16;
+    //     // genBuf[pos + 1] = (int)genBuf[pos] >> 16;
+    //     // genBuf[pos + 2] = (int)UX_process(&uexkull) >> 16;
+    //     // genBuf[pos + 3] = (int)genBuf[pos + 2] >> 16;
+
+    //     srcLeft[i] = ((rxBuf[pos] << 16) | rxBuf[pos + 1]);
+    //     srcRight[i] = ((rxBuf[pos + 2] << 16) | rxBuf[pos + 3]);
+    //     i++;
+    // }
+
+    i = 0;
+    for (int pos = startBuf; pos < endBuf; pos += 4)
+    {
+
+        int lval = (UX_process(&uexkull) + 1.0f) * (RAND_MAX / 4);
+        int rval = lval;
+
+        txBuf[pos] = (lval >> 16) & 0xFFFF;
+        txBuf[pos + 1] = lval & 0xFFFF;
+        txBuf[pos + 2] = (rval >> 16) & 0xFFFF;
+        txBuf[pos + 3] = rval & 0xFFFF;
+
+        i++;
+    }
+
+    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_5, GPIO_PIN_RESET);
+}
+
+void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s)
+{
+    UNUSED(hi2s);
+    txFullComplete = 1;
+    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_RESET);
+}
+
+void HAL_I2S_RxCpltCallback(I2S_HandleTypeDef *hi2s)
+{
+    UNUSED(hi2s);
+    rxFullComplete = 1;
+    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_RESET);
+}
+
+void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
+{
+    UNUSED(hi2s);
+    txHalfComplete = 1;
+    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_RESET);
+}
+
+void HAL_I2S_RxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
+{
+    UNUSED(hi2s);
+    rxHalfComplete = 1;
+    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_RESET);
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+    /* Prevent unused argument(s) compilation warning */
+    UNUSED(GPIO_Pin);
 }
 
 /**
@@ -294,7 +390,7 @@ static void MX_I2S2_Init(void)
     hi2s2.Init.Standard = I2S_STANDARD_PHILIPS;
     hi2s2.Init.DataFormat = I2S_DATAFORMAT_24B;
     hi2s2.Init.MCLKOutput = I2S_MCLKOUTPUT_ENABLE;
-    hi2s2.Init.AudioFreq = I2S_AUDIOFREQ_48K;
+    hi2s2.Init.AudioFreq = I2S_AUDIOFREQ_16K;
     hi2s2.Init.CPOL = I2S_CPOL_LOW;
     hi2s2.Init.ClockSource = I2S_CLOCK_PLL;
     if (HAL_I2S_Init(&hi2s2) != HAL_OK)
@@ -326,7 +422,7 @@ static void MX_I2S3_Init(void)
     hi2s3.Init.Standard = I2S_STANDARD_PHILIPS;
     hi2s3.Init.DataFormat = I2S_DATAFORMAT_24B;
     hi2s3.Init.MCLKOutput = I2S_MCLKOUTPUT_DISABLE;
-    hi2s3.Init.AudioFreq = I2S_AUDIOFREQ_48K;
+    hi2s3.Init.AudioFreq = I2S_AUDIOFREQ_16K;
     hi2s3.Init.CPOL = I2S_CPOL_LOW;
     hi2s3.Init.ClockSource = I2S_CLOCK_PLL;
     if (HAL_I2S_Init(&hi2s3) != HAL_OK)
@@ -479,93 +575,6 @@ static void MX_GPIO_Init(void)
     HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
     HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 }
-
-/* USER CODE BEGIN 4 */
-
-//
-// Either tx/rx Full or Half complete.
-// b == 0
-//		First Half
-// b == 1
-//		Second Half
-//
-
-void doPassthru(int b)
-{
-    // NOTE: These GPIO functions are just for confirmation on the
-    // oscilliscope that the RX/TX callback is working
-    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_5, GPIO_PIN_SET);
-
-    int32_t a = 0;
-
-    int startBuf = b * BUF_SAMPLES / 2;
-    int endBuf = startBuf + BUF_SAMPLES / 2;
-
-    // int i = 0;
-    // for (int pos = startBuf; pos < endBuf; pos += 4)
-    // {
-    //     srcLeft[i] = ((rxBuf[pos] << 16) | rxBuf[pos + 1]);
-    //     srcRight[i] = ((rxBuf[pos + 2] << 16) | rxBuf[pos + 3]);
-    //     i++;
-    // }
-
-    // i = 0;
-    for (int pos = startBuf; pos < endBuf; pos += 4)
-    {
-        a = (int32_t)(UX_process(&uexkull) * 32767.0f);
-        int lval = ((int)a << 0 | (int)a << 16);
-        int rval = lval;
-
-        txBuf[pos] = (lval >> 16) & 0xFFFF;
-        txBuf[pos + 1] = lval & 0xFFFF;
-        txBuf[pos + 2] = (rval >> 16) & 0xFFFF;
-        txBuf[pos + 3] = rval & 0xFFFF;
-
-        // i++;
-    }
-
-    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_5, GPIO_PIN_RESET);
-}
-
-void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s)
-{
-    UNUSED(hi2s);
-    txFullComplete = 1;
-    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_SET);
-    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_RESET);
-}
-
-void HAL_I2S_RxCpltCallback(I2S_HandleTypeDef *hi2s)
-{
-    UNUSED(hi2s);
-    rxFullComplete = 1;
-    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_SET);
-    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_RESET);
-}
-
-void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
-{
-    UNUSED(hi2s);
-    txHalfComplete = 1;
-    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_SET);
-    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_RESET);
-}
-
-void HAL_I2S_RxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
-{
-    UNUSED(hi2s);
-    rxHalfComplete = 1;
-    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_SET);
-    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_RESET);
-}
-
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
-{
-    /* Prevent unused argument(s) compilation warning */
-    UNUSED(GPIO_Pin);
-}
-
-/* USER CODE END 4 */
 
 /**
   * @brief  This function is executed in case of error occurrence.
