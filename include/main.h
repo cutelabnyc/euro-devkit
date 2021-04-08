@@ -17,9 +17,9 @@
   *
   ******************************************************************************
   */
-/* USER CODE END Header */
+  /* USER CODE END Header */
 
-/* Define to prevent recursive inclusion -------------------------------------*/
+  /* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef __MAIN_H
 #define __MAIN_H
 
@@ -28,13 +28,13 @@ extern "C"
 {
 #endif
 
-/* Includes ------------------------------------------------------------------*/
+    /* Includes ------------------------------------------------------------------*/
 #include "stm32f7xx_hal.h"
 #include "uexkull.h"
 
     /* Private includes ----------------------------------------------------------*/
     /* USER CODE BEGIN Includes */
-    uexkull_t uexkull;
+    // uexkull_t uexkull;
     /* USER CODE END Includes */
 
     /* Exported types ------------------------------------------------------------*/
@@ -55,11 +55,11 @@ extern "C"
     /* Exported functions prototypes ---------------------------------------------*/
     void Error_Handler(void);
 
-/* USER CODE BEGIN EFP */
+    /* USER CODE BEGIN EFP */
 
-/* USER CODE END EFP */
+    /* USER CODE END EFP */
 
-/* Private defines -----------------------------------------------------------*/
+    /* Private defines -----------------------------------------------------------*/
 #define USER_Btn_Pin GPIO_PIN_13
 #define USER_Btn_GPIO_Port GPIOC
 #define USER_Btn_EXTI_IRQn EXTI15_10_IRQn

@@ -1,6 +1,16 @@
-# Extra scripts file if needed!
-Import("env")
+# Custom settings, as referred to as "extra_script" in platformio.ini
+#
+# See http://docs.platformio.org/en/latest/projectconf.html#extra-script
 
-# General options that are passed to the C and C++ compilers
-env.Append(MCFLAGS=["-mthumb", "-march=armv7e-m",
-                    "-mfloat-abi=hard", "-mfpu=fpv4-sp-d16"])
+from SCons.Script import DefaultEnvironment
+
+env = DefaultEnvironment()
+
+env.Append(
+    LINKFLAGS=[
+        "-mthumb",
+        "-march=armv7e-m",
+        "-mfloat-abi=hard",
+        "-mfpu=fpv4-sp-d16"
+    ]
+)

@@ -16,9 +16,9 @@
   *
   ******************************************************************************
   */
-/* USER CODE END Header */
+  /* USER CODE END Header */
 
-/* Includes ------------------------------------------------------------------*/
+  /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -26,13 +26,16 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <cuteop.h>
 
+#define NUM_OSC 50
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-float osc_phi = 0;
-float osc_phi_inc = 440.0f / 16000.0f;
+// float osc_phi[NUM_OSC];
+// float osc_phi_inc = 440.0f / 16000.0f;
+osc_t osc[NUM_OSC];
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -77,7 +80,7 @@ float32_t srcRight[SAMPLES / 2];
 float32_t destLeft[SAMPLES / 2];
 float32_t destRight[SAMPLES / 2];
 
-void doPassthru(int m);
+void processBlock(int m);
 
 /* USER CODE END PV */
 
@@ -135,8 +138,14 @@ int main(void)
     /* USER CODE BEGIN 2 */
 
     /* USER CODE END 2 */
-    UX_init(&uexkull, 16000);
-    UX_setFreq(&uexkull, 440);
+    // UX_init(&uexkull, 16000);
+    // UX_setFreq(&uexkull, 440);
+
+    for (int i = 0; i < NUM_OSC; i++)
+    {
+        osc_init(&osc[i]);
+        osc_time(&osc[i], 440.0f / (16000.0f / 2));
+    }
 
     /* Infinite loop */
     /* USER CODE BEGIN WHILE */
@@ -148,18 +157,18 @@ int main(void)
     {
         if (rxHalfComplete && txHalfComplete)
         {
-            doPassthru(0);
+            processBlock(0);
             rxHalfComplete = 0;
             txHalfComplete = 0;
         }
 
         else if (rxFullComplete && txFullComplete)
         {
-            doPassthru(1);
+            processBlock(1);
             rxFullComplete = 0;
             txFullComplete = 0;
         }
-        UX_setFreq(&uexkull, 440);
+        // UX_setFreq(&uexkull, 440);
 
         /* USER CODE END WHILE */
 
@@ -176,7 +185,7 @@ int main(void)
 //		Second Half
 //
 
-void doPassthru(int b)
+void processBlock(int b)
 {
     // NOTE: These GPIO functions are just for confirmation on the
     // oscilliscope that the RX/TX callback is working
@@ -188,20 +197,9 @@ void doPassthru(int b)
     // osc_phi_inc = (float)440.0f / 48000.0f;
     int i = 0;
 
+    // NOTE: this is for filling the input buffer
     // for (int pos = startBuf; pos < endBuf; pos += 4)
     // {
-
-    //     // float lval = (sin(osc_phi * 6.2832f) + 1.0f) * (RAND_MAX / 2);
-    //     // float rval = (sin(osc_phi * 6.2832f) + 1.0f) * (RAND_MAX / 2);
-
-    //     // osc_phi += osc_phi_inc;
-    //     // osc_phi -= (float)((uint16_t)osc_phi);
-
-    //     // genBuf[pos] = (int)UX_process(&uexkull) >> 16;
-    //     // genBuf[pos + 1] = (int)genBuf[pos] >> 16;
-    //     // genBuf[pos + 2] = (int)UX_process(&uexkull) >> 16;
-    //     // genBuf[pos + 3] = (int)genBuf[pos + 2] >> 16;
-
     //     srcLeft[i] = ((rxBuf[pos] << 16) | rxBuf[pos + 1]);
     //     srcRight[i] = ((rxBuf[pos + 2] << 16) | rxBuf[pos + 3]);
     //     i++;
@@ -210,9 +208,14 @@ void doPassthru(int b)
     i = 0;
     for (int pos = startBuf; pos < endBuf; pos += 4)
     {
+        int lval = 0;
+        int rval = 0;
 
-        int lval = (UX_process(&uexkull) + 1.0f) * (RAND_MAX / 4);
-        int rval = lval;
+        for (int j = 0; j < NUM_OSC; j++){
+            lval += (osc_step(&osc[j], 0) * (RAND_MAX / 2)) / NUM_OSC;
+        }
+
+        rval = lval;
 
         txBuf[pos] = (lval >> 16) & 0xFFFF;
         txBuf[pos + 1] = lval & 0xFFFF;
@@ -269,15 +272,15 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
   */
 void SystemClock_Config(void)
 {
-    RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-    RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
-    RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
+    RCC_OscInitTypeDef RCC_OscInitStruct = { 0 };
+    RCC_ClkInitTypeDef RCC_ClkInitStruct = { 0 };
+    RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = { 0 };
 
-    /** Configure the main internal regulator output voltage 
+    /** Configure the main internal regulator output voltage
   */
     __HAL_RCC_PWR_CLK_ENABLE();
     __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
-    /** Initializes the CPU, AHB and APB busses clocks 
+    /** Initializes the CPU, AHB and APB busses clocks
   */
     RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
     RCC_OscInitStruct.HSIState = RCC_HSI_ON;
@@ -292,13 +295,13 @@ void SystemClock_Config(void)
     {
         Error_Handler();
     }
-    /** Activate the Over-Drive mode 
+    /** Activate the Over-Drive mode
   */
     if (HAL_PWREx_EnableOverDrive() != HAL_OK)
     {
         Error_Handler();
     }
-    /** Initializes the CPU, AHB and APB busses clocks 
+    /** Initializes the CPU, AHB and APB busses clocks
   */
     RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
     RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
@@ -353,13 +356,13 @@ static void MX_I2C2_Init(void)
     {
         Error_Handler();
     }
-    /** Configure Analogue filter 
+    /** Configure Analogue filter
   */
     if (HAL_I2CEx_ConfigAnalogFilter(&hi2c2, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
     {
         Error_Handler();
     }
-    /** Configure Digital filter 
+    /** Configure Digital filter
   */
     if (HAL_I2CEx_ConfigDigitalFilter(&hi2c2, 0) != HAL_OK)
     {
@@ -468,7 +471,7 @@ static void MX_USART3_UART_Init(void)
     /* USER CODE END USART3_Init 2 */
 }
 
-/** 
+/**
   * Enable DMA controller clock
   */
 static void MX_DMA_Init(void)
@@ -493,7 +496,7 @@ static void MX_DMA_Init(void)
   */
 static void MX_GPIO_Init(void)
 {
-    GPIO_InitTypeDef GPIO_InitStruct = {0};
+    GPIO_InitTypeDef GPIO_InitStruct = { 0 };
 
     /* GPIO Ports Clock Enable */
     __HAL_RCC_GPIOE_CLK_ENABLE();
@@ -601,7 +604,7 @@ void assert_failed(uint8_t *file, uint32_t line)
     /* USER CODE BEGIN 6 */
     /* User can add his own implementation to report the file name and line number,
      tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-    /* USER CODE END 6 */
+     /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
 
