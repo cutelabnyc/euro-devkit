@@ -11,7 +11,7 @@
 #ifndef UEXKULL_H
 #define UEXKULL_H
 
-#define NUM_OSC 20
+#define NUM_OSC 10
 #define MAX_FREQ 20000
 
 #include <cuteop.h>
@@ -21,9 +21,9 @@
   */
 typedef struct uexkull
 {
-    bank_t bank;
-    float freqs[NUM_OSC];
-    //sequence_t f;
+    float _fundamental;
+    t_bank bank;
+    t_series series;
 } uexkull_t;
 
 /**
@@ -41,14 +41,9 @@ void UX_init(uexkull_t *self,
 void UX_destroy(uexkull_t *self);
 
 /**
- * Set fundamental frequency
+ * Calculates the frequency series based on the fundamental
  */
-void UX_setFreq(uexkull_t *self, float freq);
-
-/**
- * Gets frequency vector (TODO: Should be replaced with series_t from cuteop)
- */
-void UX_getFreqVector(uexkull_t *self, float mult);
+void UX_calculateFrequencySeries(uexkull_t *self, float fundamental);
 
 /**
  * Processes a single sample in the module's IO. The process

@@ -85,10 +85,10 @@ int main(void)
 
     /* Initialize Uexkull */
     UX_init(&uexkull, 16000);
-    UX_setFreq(&uexkull, 440);
+    UX_calculateFrequencySeries(&uexkull, 0.0f); // TODO: This will be set by a pot
 
 
-    /* Infinite DMA transwmit */
+/* Infinite DMA transwmit */
     HAL_I2S_Transmit_DMA(&hi2s3, txBuf, SAMPLES * 2);
     HAL_I2S_Receive_DMA(&hi2s2, rxBuf, SAMPLES * 2);
 
@@ -108,8 +108,7 @@ int main(void)
             rxFullComplete = 0;
             txFullComplete = 0;
         }
-        UX_setFreq(&uexkull, 440);
-        UX_getFreqVector(&uexkull, 0.5f);
+        UX_calculateFrequencySeries(&uexkull, 440.0f); // TODO: This will be set by a pot
     }
 }
 
