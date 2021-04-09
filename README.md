@@ -1,4 +1,4 @@
-# Uexküll For Daisy
+# Uexküll
 
 Code for the Uexküll eurorack module.
 
