@@ -34,7 +34,7 @@ extern "C"
 
     /* Private includes ----------------------------------------------------------*/
     /* USER CODE BEGIN Includes */
-    // uexkull_t uexkull;
+    uexkull_t uexkull;
     /* USER CODE END Includes */
 
     /* Exported types ------------------------------------------------------------*/

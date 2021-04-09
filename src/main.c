@@ -16,38 +16,12 @@
   *
   ******************************************************************************
   */
-  /* USER CODE END Header */
-
-  /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
 #include <arm_math.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <cuteop.h>
-
-#define NUM_OSC 20 //Max: 100
-/* USER CODE END Includes */
-
-/* Private typedef -----------------------------------------------------------*/
-/* USER CODE BEGIN PTD */
-// float osc_phi[NUM_OSC];
-// float osc_phi_inc = 440.0f / 16000.0f;
-osc_t osc[NUM_OSC];
-/* USER CODE END PTD */
-
-/* Private define ------------------------------------------------------------*/
-/* USER CODE BEGIN PD */
-/* USER CODE END PD */
-
-/* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN PM */
-
-/* USER CODE END PM */
-
-/* Private variables ---------------------------------------------------------*/
 
 I2C_HandleTypeDef hi2c2;
 
@@ -57,8 +31,6 @@ DMA_HandleTypeDef hdma_spi2_rx;
 DMA_HandleTypeDef hdma_spi3_tx;
 
 UART_HandleTypeDef huart3;
-
-/* USER CODE BEGIN PV */
 
 // Sample size
 #define SAMPLES 512             // Total number of samples left and right
@@ -83,9 +55,6 @@ float freq[NUM_OSC];
 
 void processBlock(int m);
 
-/* USER CODE END PV */
-
-/* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
@@ -93,14 +62,6 @@ static void MX_I2S2_Init(void);
 static void MX_I2S3_Init(void);
 static void MX_USART3_UART_Init(void);
 static void MX_I2C2_Init(void);
-/* USER CODE BEGIN PFP */
-
-/* USER CODE END PFP */
-
-/* Private user code ---------------------------------------------------------*/
-/* USER CODE BEGIN 0 */
-
-/* USER CODE END 0 */
 
 /**
   * @brief  The application entry point.
@@ -108,26 +69,11 @@ static void MX_I2C2_Init(void);
   */
 int main(void)
 {
-    /* USER CODE BEGIN 1 */
-    //populateTxBuf();
-
-    /* USER CODE END 1 */
-
-    /* MCU Configuration--------------------------------------------------------*/
-
     /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
     HAL_Init();
 
-    /* USER CODE BEGIN Init */
-
-    /* USER CODE END Init */
-
     /* Configure the system clock */
     SystemClock_Config();
-
-    /* USER CODE BEGIN SysInit */
-
-    /* USER CODE END SysInit */
 
     /* Initialize all configured peripherals */
     MX_GPIO_Init();
@@ -136,29 +82,17 @@ int main(void)
     MX_I2S3_Init();
     MX_USART3_UART_Init();
     MX_I2C2_Init();
-    /* USER CODE BEGIN 2 */
 
-    /* USER CODE END 2 */
-    // UX_init(&uexkull, 16000);
-    // UX_setFreq(&uexkull, 440);
+    /* Initialize Uexkull */
+    UX_init(&uexkull, 16000);
+    UX_setFreq(&uexkull, 440);
 
-    freq[0] = 100.0f;
-    osc_init(&osc[0]);
-    osc_time(&osc[0], 100.0f / (16000.0f / 2));
 
-    for (int i = 1; i < NUM_OSC; i++)
-    {
-        freq[i] = freq[i - 1] + (freq[i - 1] * 1.0f);
-        osc_init(&osc[i]);
-        osc_time(&osc[i], freq[i] / (16000.0f / 2));
-    }
-
-    /* Infinite loop */
-    /* USER CODE BEGIN WHILE */
-
+    /* Infinite DMA transwmit */
     HAL_I2S_Transmit_DMA(&hi2s3, txBuf, SAMPLES * 2);
     HAL_I2S_Receive_DMA(&hi2s2, rxBuf, SAMPLES * 2);
 
+    /* Main loop */
     while (1)
     {
         if (rxHalfComplete && txHalfComplete)
@@ -174,22 +108,10 @@ int main(void)
             rxFullComplete = 0;
             txFullComplete = 0;
         }
-        // UX_setFreq(&uexkull, 440);
-
-        /* USER CODE END WHILE */
-
-        /* USER CODE BEGIN 3 */
+        UX_setFreq(&uexkull, 440);
+        UX_getFreqVector(&uexkull, 0.5f);
     }
-    /* USER CODE END 3 */
 }
-
-//
-// Either tx/rx Full or Half complete.
-// b == 0
-//		First Half
-// b == 1
-//		Second Half
-//
 
 void processBlock(int b)
 {
@@ -200,7 +122,6 @@ void processBlock(int b)
     int startBuf = b * BUF_SAMPLES / 2;
     int endBuf = startBuf + BUF_SAMPLES / 2;
 
-    // osc_phi_inc = (float)440.0f / 48000.0f;
     int i = 0;
 
     // NOTE: this is for filling the input buffer
@@ -216,15 +137,10 @@ void processBlock(int b)
     {
         int lval = 0;
         int rval = 0;
-        float oscBus = 0;
 
-        const float factor = (RAND_MAX / 2) / NUM_OSC;
+        const float factor = (RAND_MAX / 2);
 
-        for (int j = 0; j < NUM_OSC; j++){
-            oscBus += osc_step(&osc[j], 0);
-        }
-
-        lval = (int)(oscBus * factor);
+        lval = UX_process(&uexkull) * factor;
 
         rval = lval;
 
@@ -287,12 +203,11 @@ void SystemClock_Config(void)
     RCC_ClkInitTypeDef RCC_ClkInitStruct = { 0 };
     RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = { 0 };
 
-    /** Configure the main internal regulator output voltage
-  */
+    /** Configure the main internal regulator output voltage */
     __HAL_RCC_PWR_CLK_ENABLE();
     __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
-    /** Initializes the CPU, AHB and APB busses clocks
-  */
+
+    /** Initializes the CPU, AHB and APB busses clocks */
     RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
     RCC_OscInitStruct.HSIState = RCC_HSI_ON;
     RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
@@ -306,14 +221,14 @@ void SystemClock_Config(void)
     {
         Error_Handler();
     }
-    /** Activate the Over-Drive mode
-  */
+
+    /** Activate the Over-Drive mode */
     if (HAL_PWREx_EnableOverDrive() != HAL_OK)
     {
         Error_Handler();
     }
-    /** Initializes the CPU, AHB and APB busses clocks
-  */
+
+    /** Initializes the CPU, AHB and APB busses clocks */
     RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
     RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
     RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
@@ -346,14 +261,6 @@ void SystemClock_Config(void)
   */
 static void MX_I2C2_Init(void)
 {
-
-    /* USER CODE BEGIN I2C2_Init 0 */
-
-    /* USER CODE END I2C2_Init 0 */
-
-    /* USER CODE BEGIN I2C2_Init 1 */
-
-    /* USER CODE END I2C2_Init 1 */
     hi2c2.Instance = I2C2;
     hi2c2.Init.Timing = 0x20404768;
     hi2c2.Init.OwnAddress1 = 0;
@@ -367,21 +274,16 @@ static void MX_I2C2_Init(void)
     {
         Error_Handler();
     }
-    /** Configure Analogue filter
-  */
+    /** Configure Analogue filter */
     if (HAL_I2CEx_ConfigAnalogFilter(&hi2c2, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
     {
         Error_Handler();
     }
-    /** Configure Digital filter
-  */
+    /** Configure Digital filter */
     if (HAL_I2CEx_ConfigDigitalFilter(&hi2c2, 0) != HAL_OK)
     {
         Error_Handler();
     }
-    /* USER CODE BEGIN I2C2_Init 2 */
-
-    /* USER CODE END I2C2_Init 2 */
 }
 
 /**
@@ -391,14 +293,6 @@ static void MX_I2C2_Init(void)
   */
 static void MX_I2S2_Init(void)
 {
-
-    /* USER CODE BEGIN I2S2_Init 0 */
-
-    /* USER CODE END I2S2_Init 0 */
-
-    /* USER CODE BEGIN I2S2_Init 1 */
-
-    /* USER CODE END I2S2_Init 1 */
     hi2s2.Instance = SPI2;
     hi2s2.Init.Mode = I2S_MODE_MASTER_RX;
     hi2s2.Init.Standard = I2S_STANDARD_PHILIPS;
@@ -411,9 +305,6 @@ static void MX_I2S2_Init(void)
     {
         Error_Handler();
     }
-    /* USER CODE BEGIN I2S2_Init 2 */
-
-    /* USER CODE END I2S2_Init 2 */
 }
 
 /**
@@ -423,14 +314,6 @@ static void MX_I2S2_Init(void)
   */
 static void MX_I2S3_Init(void)
 {
-
-    /* USER CODE BEGIN I2S3_Init 0 */
-
-    /* USER CODE END I2S3_Init 0 */
-
-    /* USER CODE BEGIN I2S3_Init 1 */
-
-    /* USER CODE END I2S3_Init 1 */
     hi2s3.Instance = SPI3;
     hi2s3.Init.Mode = I2S_MODE_SLAVE_TX;
     hi2s3.Init.Standard = I2S_STANDARD_PHILIPS;
@@ -443,9 +326,6 @@ static void MX_I2S3_Init(void)
     {
         Error_Handler();
     }
-    /* USER CODE BEGIN I2S3_Init 2 */
-
-    /* USER CODE END I2S3_Init 2 */
 }
 
 /**
@@ -455,14 +335,6 @@ static void MX_I2S3_Init(void)
   */
 static void MX_USART3_UART_Init(void)
 {
-
-    /* USER CODE BEGIN USART3_Init 0 */
-
-    /* USER CODE END USART3_Init 0 */
-
-    /* USER CODE BEGIN USART3_Init 1 */
-
-    /* USER CODE END USART3_Init 1 */
     huart3.Instance = USART3;
     huart3.Init.BaudRate = 115200;
     huart3.Init.WordLength = UART_WORDLENGTH_8B;
@@ -477,9 +349,6 @@ static void MX_USART3_UART_Init(void)
     {
         Error_Handler();
     }
-    /* USER CODE BEGIN USART3_Init 2 */
-
-    /* USER CODE END USART3_Init 2 */
 }
 
 /**
