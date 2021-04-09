@@ -28,7 +28,7 @@
 #include <stdlib.h>
 #include <cuteop.h>
 
-#define NUM_OSC 50
+#define NUM_OSC 20 //Max: 100
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -79,6 +79,7 @@ float32_t srcLeft[SAMPLES / 2];
 float32_t srcRight[SAMPLES / 2];
 float32_t destLeft[SAMPLES / 2];
 float32_t destRight[SAMPLES / 2];
+float freq[NUM_OSC];
 
 void processBlock(int m);
 
@@ -141,10 +142,15 @@ int main(void)
     // UX_init(&uexkull, 16000);
     // UX_setFreq(&uexkull, 440);
 
-    for (int i = 0; i < NUM_OSC; i++)
+    freq[0] = 100.0f;
+    osc_init(&osc[0]);
+    osc_time(&osc[0], 100.0f / (16000.0f / 2));
+
+    for (int i = 1; i < NUM_OSC; i++)
     {
+        freq[i] = freq[i - 1] + (freq[i - 1] * 1.0f);
         osc_init(&osc[i]);
-        osc_time(&osc[i], 440.0f / (16000.0f / 2));
+        osc_time(&osc[i], freq[i] / (16000.0f / 2));
     }
 
     /* Infinite loop */
@@ -210,10 +216,15 @@ void processBlock(int b)
     {
         int lval = 0;
         int rval = 0;
+        float oscBus = 0;
+
+        const float factor = (RAND_MAX / 2) / NUM_OSC;
 
         for (int j = 0; j < NUM_OSC; j++){
-            lval += (osc_step(&osc[j], 0) * (RAND_MAX / 2)) / NUM_OSC;
+            oscBus += osc_step(&osc[j], 0);
         }
+
+        lval = (int)(oscBus * factor);
 
         rval = lval;
 
