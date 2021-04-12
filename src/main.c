@@ -21,7 +21,6 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <cuteop.h>
 
 I2C_HandleTypeDef hi2c2;
 
@@ -29,6 +28,7 @@ I2S_HandleTypeDef hi2s2;
 I2S_HandleTypeDef hi2s3;
 DMA_HandleTypeDef hdma_spi2_rx;
 DMA_HandleTypeDef hdma_spi3_tx;
+ADC_HandleTypeDef hadc1;
 
 UART_HandleTypeDef huart3;
 
@@ -53,6 +53,8 @@ float32_t destLeft[SAMPLES / 2];
 float32_t destRight[SAMPLES / 2];
 float freq[NUM_OSC];
 
+uint16_t adcValue;
+
 void processBlock(int m);
 
 void SystemClock_Config(void);
@@ -62,6 +64,7 @@ static void MX_I2S2_Init(void);
 static void MX_I2S3_Init(void);
 static void MX_USART3_UART_Init(void);
 static void MX_I2C2_Init(void);
+static void MX_ADC1_Init(void);
 
 /**
   * @brief  The application entry point.
@@ -82,13 +85,12 @@ int main(void)
     MX_I2S3_Init();
     MX_USART3_UART_Init();
     MX_I2C2_Init();
+    MX_ADC1_Init();
 
     /* Initialize Uexkull */
     UX_init(&uexkull, 16000);
-    UX_calculateFrequencySeries(&uexkull, 0.0f); // TODO: This will be set by a pot
 
-
-/* Infinite DMA transwmit */
+    /* Infinite DMA transwmit */
     HAL_I2S_Transmit_DMA(&hi2s3, txBuf, SAMPLES * 2);
     HAL_I2S_Receive_DMA(&hi2s2, rxBuf, SAMPLES * 2);
 
@@ -101,14 +103,24 @@ int main(void)
             rxHalfComplete = 0;
             txHalfComplete = 0;
         }
-
         else if (rxFullComplete && txFullComplete)
         {
             processBlock(1);
             rxFullComplete = 0;
             txFullComplete = 0;
         }
-        UX_calculateFrequencySeries(&uexkull, 440.0f); // TODO: This will be set by a pot
+
+        HAL_ADC_Start(&hadc1);
+        if (HAL_ADC_PollForConversion(&hadc1, 5) == HAL_OK)
+        {
+            adcValue = HAL_ADC_GetValue(&hadc1);
+        }
+        HAL_ADC_Stop(&hadc1);
+
+        UX_calculateFrequencySeries(&uexkull,
+            adcValue,
+            0.5f
+        );
     }
 }
 
@@ -251,6 +263,56 @@ void SystemClock_Config(void)
     {
         Error_Handler();
     }
+}
+
+/**
+  * @brief ADC1 Initialization Function
+  * @param None
+  * @retval None
+  */
+
+static void MX_ADC1_Init(void)
+{
+
+    /* USER CODE BEGIN ADC1_Init 0 */
+
+    /* USER CODE END ADC1_Init 0 */
+
+    ADC_ChannelConfTypeDef sConfig = { 0 };
+
+    /* USER CODE BEGIN ADC1_Init 1 */
+
+    /* USER CODE END ADC1_Init 1 */
+    /** Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
+  */
+    hadc1.Instance = ADC1;
+    hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
+    hadc1.Init.Resolution = ADC_RESOLUTION_12B;
+    hadc1.Init.ScanConvMode = DISABLE;
+    hadc1.Init.ContinuousConvMode = DISABLE;
+    hadc1.Init.DiscontinuousConvMode = DISABLE;
+    hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+    hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+    hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+    hadc1.Init.NbrOfConversion = 1;
+    hadc1.Init.DMAContinuousRequests = DISABLE;
+    hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+    if (HAL_ADC_Init(&hadc1) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+    sConfig.Channel = ADC_CHANNEL_12;
+    sConfig.Rank = 1;
+    sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+    if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    /* USER CODE BEGIN ADC1_Init 2 */
+
+    /* USER CODE END ADC1_Init 2 */
 }
 
 /**
@@ -397,6 +459,9 @@ static void MX_GPIO_Init(void)
     HAL_GPIO_WritePin(GPIOB, LD1_Pin | LD3_Pin | LD2_Pin, GPIO_PIN_RESET);
 
     /*Configure GPIO pin Output Level */
+    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, GPIO_PIN_RESET);
+
+    /*Configure GPIO pin Output Level */
     HAL_GPIO_WritePin(USB_PowerSwitchOn_GPIO_Port, USB_PowerSwitchOn_Pin, GPIO_PIN_RESET);
 
     /*Configure GPIO pins : PE3 PE4 PE5 PE6 */
@@ -452,6 +517,11 @@ static void MX_GPIO_Init(void)
     GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(USB_VBUS_GPIO_Port, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin = GPIO_PIN_2;
+    GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
     /* EXTI interrupt init*/
     HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);

@@ -13,25 +13,39 @@
 
 #define NUM_OSC 10
 #define MAX_FREQ 20000
+#define NUM_DIFFRACTION_CONSTANTS 5
 
 #include <cuteop.h>
 
  /**
-  * uexkull_t: Module's main data structure
-  */
+ * uexkull_t: Module's main data structure
+ */
 typedef struct uexkull
 {
-    float _fundamental;
     t_bank bank;
-    t_series series;
+    // t_series series;
+    float freqArray[NUM_OSC];
+    float _fundamental;
+    float _diffractionConstant;
+    bool _diffractionWidth; //0: sparse, 1: dense
 } uexkull_t;
 
 /**
- * Initialize the 'uexkull' struct
+ * Constants for diffraction series calculation
  */
-void UX_init(uexkull_t *self,
-    float samplerate
-/*t_sequence f*/);
+ // const float diffractionConstants[NUM_DIFFRACTION_CONSTANTS] =
+ // {
+ //     1.0f,
+ //     0.5f,
+ //     0.3f,
+ //     0.2f,
+ //     0.142857f
+ // };
+
+ /**
+  * Initialize the 'uexkull' struct
+  */
+void UX_init(uexkull_t *self, float samplerate);
 
 /**
  * Frees the 'uexkull' struct
@@ -43,7 +57,7 @@ void UX_destroy(uexkull_t *self);
 /**
  * Calculates the frequency series based on the fundamental
  */
-void UX_calculateFrequencySeries(uexkull_t *self, float fundamental);
+void UX_calculateFrequencySeries(uexkull_t *self, float fundamental, float diffractionConstant);
 
 /**
  * Processes a single sample in the module's IO. The process
