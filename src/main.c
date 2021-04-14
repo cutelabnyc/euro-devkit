@@ -53,7 +53,7 @@ float32_t destLeft[SAMPLES / 2];
 float32_t destRight[SAMPLES / 2];
 float freq[NUM_OSC];
 
-uint16_t adcValue;
+uint32_t adcValue;
 
 void processBlock(int m);
 
@@ -113,7 +113,7 @@ int main(void)
         HAL_ADC_Start(&hadc1);
         if (HAL_ADC_PollForConversion(&hadc1, 5) == HAL_OK)
         {
-            adcValue = HAL_ADC_GetValue(&hadc1);
+            adcValue = HAL_ADC_GetValue(&hadc1) * 0.01;
         }
         HAL_ADC_Stop(&hadc1);
 
