@@ -17,6 +17,7 @@
   ******************************************************************************
   */
 #include "main.h"
+#include "codec.h"
 #include <arm_math.h>
 #include <string.h>
 #include <stdio.h>
@@ -86,6 +87,7 @@ int main(void)
     MX_USART3_UART_Init();
     MX_I2C2_Init();
     MX_ADC1_Init();
+    Codec_Reset();
 
     /* Initialize Uexkull */
     UX_init(&uexkull, 16000);
@@ -136,12 +138,12 @@ void processBlock(int b)
     int i = 0;
 
     // NOTE: this is for filling the input buffer
-    // for (int pos = startBuf; pos < endBuf; pos += 4)
-    // {
-    //     srcLeft[i] = ((rxBuf[pos] << 16) | rxBuf[pos + 1]);
-    //     srcRight[i] = ((rxBuf[pos + 2] << 16) | rxBuf[pos + 3]);
-    //     i++;
-    // }
+    for (int pos = startBuf; pos < endBuf; pos += 4)
+    {
+        srcLeft[i] = ((rxBuf[pos] << 16) | rxBuf[pos + 1]);
+        srcRight[i] = ((rxBuf[pos + 2] << 16) | rxBuf[pos + 3]);
+        i++;
+    }
 
     i = 0;
     for (int pos = startBuf; pos < endBuf; pos += 4)
@@ -149,11 +151,11 @@ void processBlock(int b)
         int lval = 0;
         int rval = 0;
 
-        const float factor = (RAND_MAX / 2);
+        // const float factor = (RAND_MAX / 2);
 
-        lval = UX_process(&uexkull) * factor;
-
-        rval = lval;
+        // lval = UX_process(&uexkull) * factor;
+        lval = srcLeft[i];
+        rval = srcRight[i];
 
         txBuf[pos] = (lval >> 16) & 0xFFFF;
         txBuf[pos + 1] = lval & 0xFFFF;
@@ -522,6 +524,15 @@ static void MX_GPIO_Init(void)
     GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+    /* CODEC_I2C SCL and SDA pins configuration -------------------------------------*/
+    GPIO_InitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_1;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    GPIO_InitStruct.Alternate = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
+    /* -----------------------------------------------------------------------------*/
 
     /* EXTI interrupt init*/
     HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
