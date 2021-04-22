@@ -264,6 +264,13 @@ void SystemClock_Config(void)
     {
         Error_Handler();
     }
+
+    PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_I2C2;
+    PeriphClkInitStruct.I2c2ClockSelection = RCC_I2C2CLKSOURCE_PCLK1;
+    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
+    {
+        Error_Handler();
+    }
 }
 
 /**
@@ -324,20 +331,27 @@ static void MX_ADC1_Init(void)
 static void MX_I2C2_Init(void)
 {
     hi2c2.Instance = I2C2;
-    hi2c2.Init.Timing = CODEC_FLAG_TIMEOUT;
+    hi2c2.Init.Timing = 0x2000090E;
+    hi2c2.Init.OwnAddress1 = 0;
     hi2c2.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-    hi2c2.Init.OwnAddress1 = 0x5A;
-
-    // hi2c2.Init.OwnAddress1 = 0;
-    // hi2c2.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-    // hi2c2.Init.OwnAddress2 = 0;
-    // hi2c2.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
-    // hi2c2.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-    // hi2c2.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-
-    __I2C2_CLK_ENABLE();
-
+    hi2c2.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+    hi2c2.Init.OwnAddress2 = 0;
+    hi2c2.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
+    hi2c2.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+    hi2c2.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
     if (HAL_I2C_Init(&hi2c2) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    /** Configure Analogue filter
+    */
+    if (HAL_I2CEx_ConfigAnalogFilter(&hi2c2, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    /** Configure Digital filter
+    */
+    if (HAL_I2CEx_ConfigDigitalFilter(&hi2c2, 0) != HAL_OK)
     {
         Error_Handler();
     }
@@ -355,7 +369,7 @@ static void MX_I2S2_Init(void)
     hi2s2.Init.Standard = I2S_STANDARD_PHILIPS;
     hi2s2.Init.DataFormat = I2S_DATAFORMAT_24B;
     hi2s2.Init.MCLKOutput = I2S_MCLKOUTPUT_ENABLE;
-    hi2s2.Init.AudioFreq = I2S_AUDIOFREQ_16K;
+    hi2s2.Init.AudioFreq = I2S_AUDIOFREQ_48K;
     hi2s2.Init.CPOL = I2S_CPOL_LOW;
     hi2s2.Init.ClockSource = I2S_CLOCK_PLL;
     if (HAL_I2S_Init(&hi2s2) != HAL_OK)
@@ -376,7 +390,7 @@ static void MX_I2S3_Init(void)
     hi2s3.Init.Standard = I2S_STANDARD_PHILIPS;
     hi2s3.Init.DataFormat = I2S_DATAFORMAT_24B;
     hi2s3.Init.MCLKOutput = I2S_MCLKOUTPUT_DISABLE;
-    hi2s3.Init.AudioFreq = I2S_AUDIOFREQ_16K;
+    hi2s3.Init.AudioFreq = I2S_AUDIOFREQ_48K;
     hi2s3.Init.CPOL = I2S_CPOL_LOW;
     hi2s3.Init.ClockSource = I2S_CLOCK_PLL;
     if (HAL_I2S_Init(&hi2s3) != HAL_OK)
@@ -518,15 +532,6 @@ static void MX_GPIO_Init(void)
     GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-    /* CODEC_I2C SCL and SDA pins configuration -------------------------------------*/
-    GPIO_InitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_1;
-    GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FAST;
-    GPIO_InitStruct.Alternate = GPIO_AF4_I2C2;
-    GPIO_InitStruct.Pull = GPIO_PULLUP;
-    HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
-    /* -----------------------------------------------------------------------------*/
 
     /* EXTI interrupt init*/
     HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
