@@ -90,7 +90,7 @@ int main(void)
     Codec_Init(&hi2c2);
 
     /* Initialize Uexkull */
-    UX_init(&uexkull, 16000);
+    UX_init(&uexkull, 48000);
 
     /* Infinite DMA transwmit */
     HAL_I2S_Transmit_DMA(&hi2s3, txBuf, SAMPLES * 2);
@@ -120,7 +120,7 @@ int main(void)
         HAL_ADC_Stop(&hadc1);
 
         UX_calculateFrequencySeries(&uexkull,
-            adcValue,
+            440,
             0.5f
         );
     }
@@ -151,11 +151,11 @@ void processBlock(int b)
         int lval = 0;
         int rval = 0;
 
-        // const float factor = (RAND_MAX / 2);
+        const float factor = (RAND_MAX / 2);
 
-        // lval = UX_process(&uexkull) * factor;
-        lval = srcLeft[i];
-        rval = srcRight[i];
+        lval = UX_process(&uexkull) * factor;
+        // lval = srcLeft[i];
+        rval = lval;
 
         txBuf[pos] = (lval >> 16) & 0xFFFF;
         txBuf[pos + 1] = lval & 0xFFFF;
@@ -367,7 +367,7 @@ static void MX_I2S2_Init(void)
     hi2s2.Instance = SPI2;
     hi2s2.Init.Mode = I2S_MODE_MASTER_RX;
     hi2s2.Init.Standard = I2S_STANDARD_PHILIPS;
-    hi2s2.Init.DataFormat = I2S_DATAFORMAT_24B;
+    hi2s2.Init.DataFormat = I2S_DATAFORMAT_32B;
     hi2s2.Init.MCLKOutput = I2S_MCLKOUTPUT_ENABLE;
     hi2s2.Init.AudioFreq = I2S_AUDIOFREQ_48K;
     hi2s2.Init.CPOL = I2S_CPOL_LOW;
@@ -386,10 +386,10 @@ static void MX_I2S2_Init(void)
 static void MX_I2S3_Init(void)
 {
     hi2s3.Instance = SPI3;
-    hi2s3.Init.Mode = I2S_MODE_SLAVE_TX;
+    hi2s3.Init.Mode = I2S_MODE_MASTER_TX;
     hi2s3.Init.Standard = I2S_STANDARD_PHILIPS;
-    hi2s3.Init.DataFormat = I2S_DATAFORMAT_24B;
-    hi2s3.Init.MCLKOutput = I2S_MCLKOUTPUT_DISABLE;
+    hi2s3.Init.DataFormat = I2S_DATAFORMAT_32B;
+    hi2s3.Init.MCLKOutput = I2S_MCLKOUTPUT_ENABLE;
     hi2s3.Init.AudioFreq = I2S_AUDIOFREQ_48K;
     hi2s3.Init.CPOL = I2S_CPOL_LOW;
     hi2s3.Init.ClockSource = I2S_CLOCK_PLL;
