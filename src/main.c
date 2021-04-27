@@ -16,38 +16,12 @@
   *
   ******************************************************************************
   */
-  /* USER CODE END Header */
-
-  /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
+#include "codec.h"
 #include <arm_math.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <cuteop.h>
-
-#define NUM_OSC 20 //Max: 100
-/* USER CODE END Includes */
-
-/* Private typedef -----------------------------------------------------------*/
-/* USER CODE BEGIN PTD */
-// float osc_phi[NUM_OSC];
-// float osc_phi_inc = 440.0f / 16000.0f;
-osc_t osc[NUM_OSC];
-/* USER CODE END PTD */
-
-/* Private define ------------------------------------------------------------*/
-/* USER CODE BEGIN PD */
-/* USER CODE END PD */
-
-/* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN PM */
-
-/* USER CODE END PM */
-
-/* Private variables ---------------------------------------------------------*/
 
 I2C_HandleTypeDef hi2c2;
 
@@ -55,10 +29,9 @@ I2S_HandleTypeDef hi2s2;
 I2S_HandleTypeDef hi2s3;
 DMA_HandleTypeDef hdma_spi2_rx;
 DMA_HandleTypeDef hdma_spi3_tx;
+ADC_HandleTypeDef hadc1;
 
 UART_HandleTypeDef huart3;
-
-/* USER CODE BEGIN PV */
 
 // Sample size
 #define SAMPLES 512             // Total number of samples left and right
@@ -72,20 +45,16 @@ volatile int txFullComplete = 0;
 
 // DMA Buffers
 uint16_t rxBuf[BUF_SAMPLES];
-uint16_t genBuf[BUF_SAMPLES];
 uint16_t txBuf[BUF_SAMPLES];
 
 float32_t srcLeft[SAMPLES / 2];
 float32_t srcRight[SAMPLES / 2];
-float32_t destLeft[SAMPLES / 2];
-float32_t destRight[SAMPLES / 2];
 float freq[NUM_OSC];
+
+uint32_t adcValue;
 
 void processBlock(int m);
 
-/* USER CODE END PV */
-
-/* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
@@ -93,14 +62,7 @@ static void MX_I2S2_Init(void);
 static void MX_I2S3_Init(void);
 static void MX_USART3_UART_Init(void);
 static void MX_I2C2_Init(void);
-/* USER CODE BEGIN PFP */
-
-/* USER CODE END PFP */
-
-/* Private user code ---------------------------------------------------------*/
-/* USER CODE BEGIN 0 */
-
-/* USER CODE END 0 */
+static void MX_ADC1_Init(void);
 
 /**
   * @brief  The application entry point.
@@ -108,26 +70,11 @@ static void MX_I2C2_Init(void);
   */
 int main(void)
 {
-    /* USER CODE BEGIN 1 */
-    //populateTxBuf();
-
-    /* USER CODE END 1 */
-
-    /* MCU Configuration--------------------------------------------------------*/
-
     /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
     HAL_Init();
 
-    /* USER CODE BEGIN Init */
-
-    /* USER CODE END Init */
-
     /* Configure the system clock */
     SystemClock_Config();
-
-    /* USER CODE BEGIN SysInit */
-
-    /* USER CODE END SysInit */
 
     /* Initialize all configured peripherals */
     MX_GPIO_Init();
@@ -136,29 +83,17 @@ int main(void)
     MX_I2S3_Init();
     MX_USART3_UART_Init();
     MX_I2C2_Init();
-    /* USER CODE BEGIN 2 */
+    MX_ADC1_Init();
+    Codec_Init(&hi2c2);
 
-    /* USER CODE END 2 */
-    // UX_init(&uexkull, 16000);
-    // UX_setFreq(&uexkull, 440);
+    /* Initialize Uexkull */
+    UX_init(&uexkull, 48000);
 
-    freq[0] = 100.0f;
-    osc_init(&osc[0]);
-    osc_time(&osc[0], 100.0f / (16000.0f / 2));
-
-    for (int i = 1; i < NUM_OSC; i++)
-    {
-        freq[i] = freq[i - 1] + (freq[i - 1] * 1.0f);
-        osc_init(&osc[i]);
-        osc_time(&osc[i], freq[i] / (16000.0f / 2));
-    }
-
-    /* Infinite loop */
-    /* USER CODE BEGIN WHILE */
-
+    /* Infinite DMA transwmit */
     HAL_I2S_Transmit_DMA(&hi2s3, txBuf, SAMPLES * 2);
     HAL_I2S_Receive_DMA(&hi2s2, rxBuf, SAMPLES * 2);
 
+    /* Main loop */
     while (1)
     {
         if (rxHalfComplete && txHalfComplete)
@@ -167,29 +102,26 @@ int main(void)
             rxHalfComplete = 0;
             txHalfComplete = 0;
         }
-
         else if (rxFullComplete && txFullComplete)
         {
             processBlock(1);
             rxFullComplete = 0;
             txFullComplete = 0;
         }
-        // UX_setFreq(&uexkull, 440);
 
-        /* USER CODE END WHILE */
+        HAL_ADC_Start(&hadc1);
+        if (HAL_ADC_PollForConversion(&hadc1, 5) == HAL_OK)
+        {
+            adcValue = HAL_ADC_GetValue(&hadc1);
+        }
+        HAL_ADC_Stop(&hadc1);
 
-        /* USER CODE BEGIN 3 */
+        UX_calculateFrequencySeries(&uexkull,
+            440,
+            0.5f
+        );
     }
-    /* USER CODE END 3 */
 }
-
-//
-// Either tx/rx Full or Half complete.
-// b == 0
-//		First Half
-// b == 1
-//		Second Half
-//
 
 void processBlock(int b)
 {
@@ -200,32 +132,26 @@ void processBlock(int b)
     int startBuf = b * BUF_SAMPLES / 2;
     int endBuf = startBuf + BUF_SAMPLES / 2;
 
-    // osc_phi_inc = (float)440.0f / 48000.0f;
     int i = 0;
 
     // NOTE: this is for filling the input buffer
-    // for (int pos = startBuf; pos < endBuf; pos += 4)
-    // {
-    //     srcLeft[i] = ((rxBuf[pos] << 16) | rxBuf[pos + 1]);
-    //     srcRight[i] = ((rxBuf[pos + 2] << 16) | rxBuf[pos + 3]);
-    //     i++;
-    // }
+    for (int pos = startBuf; pos < endBuf; pos += 4)
+    {
+        srcLeft[i] = ((rxBuf[pos] << 16) | rxBuf[pos + 1]);
+        srcRight[i] = ((rxBuf[pos + 2] << 16) | rxBuf[pos + 3]);
+        i++;
+    }
 
     i = 0;
     for (int pos = startBuf; pos < endBuf; pos += 4)
     {
         int lval = 0;
         int rval = 0;
-        float oscBus = 0;
 
-        const float factor = (RAND_MAX / 2) / NUM_OSC;
+        const float factor = (RAND_MAX / 2);
 
-        for (int j = 0; j < NUM_OSC; j++){
-            oscBus += osc_step(&osc[j], 0);
-        }
-
-        lval = (int)(oscBus * factor);
-
+        lval = UX_process(&uexkull) * factor;
+        // lval = srcLeft[i];
         rval = lval;
 
         txBuf[pos] = (lval >> 16) & 0xFFFF;
@@ -251,8 +177,6 @@ void HAL_I2S_RxCpltCallback(I2S_HandleTypeDef *hi2s)
 {
     UNUSED(hi2s);
     rxFullComplete = 1;
-    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_SET);
-    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_RESET);
 }
 
 void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
@@ -267,8 +191,6 @@ void HAL_I2S_RxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
 {
     UNUSED(hi2s);
     rxHalfComplete = 1;
-    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_SET);
-    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_RESET);
 }
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
@@ -287,12 +209,11 @@ void SystemClock_Config(void)
     RCC_ClkInitTypeDef RCC_ClkInitStruct = { 0 };
     RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = { 0 };
 
-    /** Configure the main internal regulator output voltage
-  */
+    /** Configure the main internal regulator output voltage */
     __HAL_RCC_PWR_CLK_ENABLE();
     __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
-    /** Initializes the CPU, AHB and APB busses clocks
-  */
+
+    /** Initializes the CPU, AHB and APB busses clocks */
     RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
     RCC_OscInitStruct.HSIState = RCC_HSI_ON;
     RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
@@ -306,14 +227,14 @@ void SystemClock_Config(void)
     {
         Error_Handler();
     }
-    /** Activate the Over-Drive mode
-  */
+
+    /** Activate the Over-Drive mode */
     if (HAL_PWREx_EnableOverDrive() != HAL_OK)
     {
         Error_Handler();
     }
-    /** Initializes the CPU, AHB and APB busses clocks
-  */
+
+    /** Initializes the CPU, AHB and APB busses clocks */
     RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
     RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
     RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
@@ -324,7 +245,7 @@ void SystemClock_Config(void)
     {
         Error_Handler();
     }
-    PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USART3 | RCC_PERIPHCLK_I2C2 | RCC_PERIPHCLK_I2S;
+    PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USART3 | RCC_PERIPHCLK_I2S;
     PeriphClkInitStruct.PLLI2S.PLLI2SN = 430;
     PeriphClkInitStruct.PLLI2S.PLLI2SP = RCC_PLLP_DIV2;
     PeriphClkInitStruct.PLLI2S.PLLI2SR = 7;
@@ -332,11 +253,67 @@ void SystemClock_Config(void)
     PeriphClkInitStruct.PLLI2SDivQ = 1;
     PeriphClkInitStruct.I2sClockSelection = RCC_I2SCLKSOURCE_PLLI2S;
     PeriphClkInitStruct.Usart3ClockSelection = RCC_USART3CLKSOURCE_PCLK1;
+    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
+    PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_I2C2;
     PeriphClkInitStruct.I2c2ClockSelection = RCC_I2C2CLKSOURCE_PCLK1;
     if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
     {
         Error_Handler();
     }
+}
+
+/**
+  * @brief ADC1 Initialization Function
+  * @param None
+  * @retval None
+  */
+
+static void MX_ADC1_Init(void)
+{
+
+    /* USER CODE BEGIN ADC1_Init 0 */
+
+    /* USER CODE END ADC1_Init 0 */
+
+    ADC_ChannelConfTypeDef sConfig = { 0 };
+
+    /* USER CODE BEGIN ADC1_Init 1 */
+
+    /* USER CODE END ADC1_Init 1 */
+    /** Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
+  */
+    hadc1.Instance = ADC1;
+    hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
+    hadc1.Init.Resolution = ADC_RESOLUTION_12B;
+    hadc1.Init.ScanConvMode = DISABLE;
+    hadc1.Init.ContinuousConvMode = DISABLE;
+    hadc1.Init.DiscontinuousConvMode = DISABLE;
+    hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+    hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+    hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+    hadc1.Init.NbrOfConversion = 1;
+    hadc1.Init.DMAContinuousRequests = DISABLE;
+    hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+    if (HAL_ADC_Init(&hadc1) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+    sConfig.Channel = ADC_CHANNEL_12;
+    sConfig.Rank = 1;
+    sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+    if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    /* USER CODE BEGIN ADC1_Init 2 */
+
+    /* USER CODE END ADC1_Init 2 */
 }
 
 /**
@@ -346,16 +323,8 @@ void SystemClock_Config(void)
   */
 static void MX_I2C2_Init(void)
 {
-
-    /* USER CODE BEGIN I2C2_Init 0 */
-
-    /* USER CODE END I2C2_Init 0 */
-
-    /* USER CODE BEGIN I2C2_Init 1 */
-
-    /* USER CODE END I2C2_Init 1 */
     hi2c2.Instance = I2C2;
-    hi2c2.Init.Timing = 0x20404768;
+    hi2c2.Init.Timing = 0x2000090E;
     hi2c2.Init.OwnAddress1 = 0;
     hi2c2.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
     hi2c2.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
@@ -368,20 +337,17 @@ static void MX_I2C2_Init(void)
         Error_Handler();
     }
     /** Configure Analogue filter
-  */
+    */
     if (HAL_I2CEx_ConfigAnalogFilter(&hi2c2, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
     {
         Error_Handler();
     }
     /** Configure Digital filter
-  */
+    */
     if (HAL_I2CEx_ConfigDigitalFilter(&hi2c2, 0) != HAL_OK)
     {
         Error_Handler();
     }
-    /* USER CODE BEGIN I2C2_Init 2 */
-
-    /* USER CODE END I2C2_Init 2 */
 }
 
 /**
@@ -391,29 +357,18 @@ static void MX_I2C2_Init(void)
   */
 static void MX_I2S2_Init(void)
 {
-
-    /* USER CODE BEGIN I2S2_Init 0 */
-
-    /* USER CODE END I2S2_Init 0 */
-
-    /* USER CODE BEGIN I2S2_Init 1 */
-
-    /* USER CODE END I2S2_Init 1 */
     hi2s2.Instance = SPI2;
     hi2s2.Init.Mode = I2S_MODE_MASTER_RX;
     hi2s2.Init.Standard = I2S_STANDARD_PHILIPS;
-    hi2s2.Init.DataFormat = I2S_DATAFORMAT_24B;
+    hi2s2.Init.DataFormat = I2S_DATAFORMAT_32B;
     hi2s2.Init.MCLKOutput = I2S_MCLKOUTPUT_ENABLE;
-    hi2s2.Init.AudioFreq = I2S_AUDIOFREQ_16K;
+    hi2s2.Init.AudioFreq = I2S_AUDIOFREQ_48K;
     hi2s2.Init.CPOL = I2S_CPOL_LOW;
     hi2s2.Init.ClockSource = I2S_CLOCK_PLL;
     if (HAL_I2S_Init(&hi2s2) != HAL_OK)
     {
         Error_Handler();
     }
-    /* USER CODE BEGIN I2S2_Init 2 */
-
-    /* USER CODE END I2S2_Init 2 */
 }
 
 /**
@@ -423,29 +378,18 @@ static void MX_I2S2_Init(void)
   */
 static void MX_I2S3_Init(void)
 {
-
-    /* USER CODE BEGIN I2S3_Init 0 */
-
-    /* USER CODE END I2S3_Init 0 */
-
-    /* USER CODE BEGIN I2S3_Init 1 */
-
-    /* USER CODE END I2S3_Init 1 */
     hi2s3.Instance = SPI3;
-    hi2s3.Init.Mode = I2S_MODE_SLAVE_TX;
+    hi2s3.Init.Mode = I2S_MODE_MASTER_TX;
     hi2s3.Init.Standard = I2S_STANDARD_PHILIPS;
-    hi2s3.Init.DataFormat = I2S_DATAFORMAT_24B;
-    hi2s3.Init.MCLKOutput = I2S_MCLKOUTPUT_DISABLE;
-    hi2s3.Init.AudioFreq = I2S_AUDIOFREQ_16K;
+    hi2s3.Init.DataFormat = I2S_DATAFORMAT_32B;
+    hi2s3.Init.MCLKOutput = I2S_MCLKOUTPUT_ENABLE;
+    hi2s3.Init.AudioFreq = I2S_AUDIOFREQ_48K;
     hi2s3.Init.CPOL = I2S_CPOL_LOW;
     hi2s3.Init.ClockSource = I2S_CLOCK_PLL;
     if (HAL_I2S_Init(&hi2s3) != HAL_OK)
     {
         Error_Handler();
     }
-    /* USER CODE BEGIN I2S3_Init 2 */
-
-    /* USER CODE END I2S3_Init 2 */
 }
 
 /**
@@ -455,14 +399,6 @@ static void MX_I2S3_Init(void)
   */
 static void MX_USART3_UART_Init(void)
 {
-
-    /* USER CODE BEGIN USART3_Init 0 */
-
-    /* USER CODE END USART3_Init 0 */
-
-    /* USER CODE BEGIN USART3_Init 1 */
-
-    /* USER CODE END USART3_Init 1 */
     huart3.Instance = USART3;
     huart3.Init.BaudRate = 115200;
     huart3.Init.WordLength = UART_WORDLENGTH_8B;
@@ -477,9 +413,6 @@ static void MX_USART3_UART_Init(void)
     {
         Error_Handler();
     }
-    /* USER CODE BEGIN USART3_Init 2 */
-
-    /* USER CODE END USART3_Init 2 */
 }
 
 /**
@@ -523,10 +456,10 @@ static void MX_GPIO_Init(void)
     HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6, GPIO_PIN_RESET);
 
     /*Configure GPIO pin Output Level */
-    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_4, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(GPIOB, LD1_Pin | LD3_Pin | LD2_Pin, GPIO_PIN_RESET);
 
     /*Configure GPIO pin Output Level */
-    HAL_GPIO_WritePin(GPIOB, LD1_Pin | LD3_Pin | LD2_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, GPIO_PIN_RESET);
 
     /*Configure GPIO pin Output Level */
     HAL_GPIO_WritePin(USB_PowerSwitchOn_GPIO_Port, USB_PowerSwitchOn_Pin, GPIO_PIN_RESET);
@@ -543,13 +476,6 @@ static void MX_GPIO_Init(void)
     GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(USER_Btn_GPIO_Port, &GPIO_InitStruct);
-
-    /*Configure GPIO pin : PC4 */
-    GPIO_InitStruct.Pin = GPIO_PIN_4;
-    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
     /*Configure GPIO pins : LD1_Pin LD3_Pin LD2_Pin */
     GPIO_InitStruct.Pin = LD1_Pin | LD3_Pin | LD2_Pin;
@@ -584,6 +510,11 @@ static void MX_GPIO_Init(void)
     GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(USB_VBUS_GPIO_Port, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin = GPIO_PIN_2;
+    GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
     /* EXTI interrupt init*/
     HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);

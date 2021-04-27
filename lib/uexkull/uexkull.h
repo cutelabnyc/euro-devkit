@@ -1,58 +1,71 @@
-// /**
-//  * uexkull.h —— (Max Ardito, 10/07/20)
-//  *
-//  * Class representing the entire module's functionality.
-//  * Instantiated globally in [/main.cpp]. Bridges the gap
-//  * between the Daisy's Oscillator classes and Cute-Op's
-//  * sequence class. Processes frequency ratios in the main
-//  * loop
-//  */
+/**
+ * uexkull.h —— (Max Ardito, 10/07/20)
+ *
+ * Class representing the entire module's functionality.
+ * Instantiated globally in [/main.cpp]. Bridges the gap
+ * between the Daisy's Oscillator classes and Cute-Op's
+ * sequence class. Processes frequency ratios in the main
+ * loop
+ */
 
-// #ifndef UEXKULL_H
-// #define UEXKULL_H
+#ifndef UEXKULL_H
+#define UEXKULL_H
 
-// #define NUM_BANKS 1
-// #define NUM_OSC 4
-// #define MAX_FREQ 20000
+#define NUM_OSC 10
+#define MAX_FREQ 20000
+#define NUM_DIFFRACTION_CONSTANTS 5
 
-// #include <cuteop.h>
+#include <cuteop.h>
 
-//  /**
-//   * uexkull_t: Module's main data structure
-//   */
-// typedef struct uexkull
-// {
-//     bank_t centralBanks[NUM_BANKS];
-//     float freqs[NUM_OSC];
-//     //sequence_t f;
-// } uexkull_t;
+ /**
+ * uexkull_t: Module's main data structure
+ */
+typedef struct uexkull
+{
+    t_bank bank;
+    // t_series series;
+    float freqArray[NUM_OSC];
+    float _fundamental;
+    float _diffractionConstant;
+    bool _diffractionWidth; //0: sparse, 1: dense
+} uexkull_t;
 
-// /**
-//  * Initialize the 'uexkull' struct
-//  */
-// void UX_init(uexkull_t *self,
-//     float samplerate
-// /*t_sequence f*/);
+/**
+ * Constants for diffraction series calculation
+ */
+ // const float diffractionConstants[NUM_DIFFRACTION_CONSTANTS] =
+ // {
+ //     1.0f,
+ //     0.5f,
+ //     0.3f,
+ //     0.2f,
+ //     0.142857f
+ // };
 
-// /**
-//  * Frees the 'uexkull' struct
-//  *
-//  * TODO: Add and describe parameters
-//  */
-// void UX_destroy(uexkull_t *self);
+ /**
+  * Initialize the 'uexkull' struct
+  */
+void UX_init(uexkull_t *self, float samplerate);
 
-// /**
-//  * Set fundamental frequency
-//  */
-// void UX_setFreq(uexkull_t *self, float freq);
+/**
+ * Frees the 'uexkull' struct
+ *
+ * TODO: Add and describe parameters
+ */
+void UX_destroy(uexkull_t *self);
 
-// /**
-//  * Processes a single sample in the module's IO. The process
-//  * function acts as a bridge between the Daisy's DSP library
-//  * and Cute-Op's mathematical sequence generating module.
-//  *
-//  * TODO: Add and describe parameters
-//  */
-// float UX_process(uexkull_t *self);
+/**
+ * Calculates the frequency series based on the fundamental
+ */
+void UX_calculateFrequencySeries(uexkull_t *self, float fundamental, float diffractionConstant);
 
-// #endif /* OPPORTUNITY_H */
+/**
+ * Processes a single sample in the module's IO. The process
+ * function acts as a bridge between the Daisy's DSP library
+ * and Cute-Op's mathematical sequence generating module.
+ *
+ * TODO: Add and describe parameters
+ */
+float UX_process(uexkull_t *self);
+
+#endif /* OPPORTUNITY_H */

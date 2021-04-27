@@ -1,53 +1,58 @@
-// #include "uexkull.h"
-// #include <cuteop.h>
+#include "uexkull.h"
+#include <cuteop.h>
 
-// void UX_init(uexkull_t *self, float samplerate)
-// {
-//     for (int i = 0; i < NUM_BANKS; i++)
-//     {
-//         BK_init(&(self->centralBanks[i]),
-//             NUM_OSC,
-//             samplerate,
-//             0.0f,
-//             SIN);
-//     }
+/**
+* _UX_diffractionSeries:
+*
+* This is the bread and butter of Uexkull, the heart and soul!
+*/
+static void _UX_diffractionSeries(float *vector, uint16_t numElements, float diffractionConstant)
+{
+    for (int i = 0; i < numElements; i++)
+    {
+        if (i != 0)
+        {
+            vector[i] = vector[i - 1] + (vector[i - 1] * diffractionConstant);
+        }
+    }
+}
 
-//     for (int i = 0; i < NUM_OSC; i++)
-//     {
-//         self->freqs[i] = 0;
-//     }
-// }
+void UX_init(uexkull_t *self, float samplerate)
+{
+    bank_init(&self->bank,
+        NUM_OSC,
+        samplerate,
+        0.0f,
+        SIN);
 
-// static void _UX_getFreqVector(uexkull_t *self, float mult)
-// {
-//     for (int i = 1; i < NUM_OSC; i++)
-//     {
-//         self->freqs[i] = (self->freqs[i - 1] + (self->freqs[i - 1] * mult));
+    // series_init(
+    //     &self->series,
+    //     NUM_OSC,
+    //     _UX_diffractionSeries
+    // );
 
-//         if (self->freqs[i] > MAX_FREQ)
-//         {
-//             self->freqs[i] = 0;
-//         }
-//     }
-// }
+    self->_diffractionConstant = 0.5f;
+    self->_fundamental = 0;
+    self->_diffractionWidth = false;
+    // series_process(&self->series, self->_fundamental, &self->_diffractionConstant);
 
-// void UX_setFreq(uexkull_t *self, float freq)
-// {
-//     self->freqs[0] = freq;
-// }
+}
 
-// float UX_process(uexkull_t *self)
-// {
-//     float sig = 0;
+void UX_calculateFrequencySeries(uexkull_t *self, float fundamental, float diffractionConstant)
+{
+    self->_fundamental = fundamental;
+    self->_diffractionConstant = diffractionConstant;
+    self->freqArray[0] = fundamental;
+    _UX_diffractionSeries(self->freqArray, NUM_OSC, 0.333);
+    // TODO: Use the series class in cuteop
+    // series_process(&self->series, self->_fundamental, 1, &self->_diffractionConstant);
+}
 
-//     _UX_getFreqVector(self, 0.5);
+float UX_process(uexkull_t *self)
+{
+    float sig = 0;
+    bank_setFrequencies(&(self->bank), self->freqArray, NUM_OSC);
+    sig += bank_process(&(self->bank));
 
-//     for (int i = 0; i < NUM_BANKS; i++)
-//     {
-//         BK_setFrequencies(&(self->centralBanks[i]), self->freqs, NUM_OSC);
-
-//         sig += BK_process(&(self->centralBanks[i])) / NUM_BANKS;
-//     }
-
-//     return sig;
-// }
+    return sig;
+}
