@@ -4,10 +4,10 @@ const uint16_t w8731_init_data[] =
 {
     0x017,			// Reg 00: Left Line In (0dB, mute off)
     0x017,			// Reg 01: Right Line In (0dB, mute off)
-    0x079,			// Reg 02: Left Headphone out (0dB)
-    0x06F,			// Reg 03: Right Headphone out (0dB)
+    0x069,			// Reg 02: Left Headphone out (0dB)
+    0x069,			// Reg 03: Right Headphone out (0dB)
     // 0x012,			// Reg 04: Analog Audio Path Control (DAC sel, Mute Mic)
-    // 0x008,			// Reg 04: Analog Audio Path Control (Disable Mic Mute, Line to ADC, Enable Bypass, Don't Select DAC)
+    // 0x008,			// Reg 04: Analo g Audio Path Control (Disable Mic Mute, Line to ADC, Enable Bypass, Don't Select DAC)
     0x010,			// Reg 04: Analog Audio Path Control (Disable Mic Mute, Line to ADC, Enable Bypass, Select DAC)
     0x000,			// Reg 05: Digital Audio Path Control
     0x062,			// Reg 06: Power Down Control (Clkout, Osc, Mic Off)

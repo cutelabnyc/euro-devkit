@@ -51,7 +51,7 @@ float32_t srcLeft[SAMPLES / 2];
 float32_t srcRight[SAMPLES / 2];
 float freq[NUM_OSC];
 
-uint32_t adcValue;
+float adcValue;
 
 void processBlock(int m);
 
@@ -112,10 +112,15 @@ int main(void)
         HAL_ADC_Start(&hadc1);
         if (HAL_ADC_PollForConversion(&hadc1, 5) == HAL_OK)
         {
+            // adcValue = ((float)(HAL_ADC_GetValue(&hadc1) / (float)UINT8_MAX) * 20000.0f);
             adcValue = HAL_ADC_GetValue(&hadc1);
         }
         HAL_ADC_Stop(&hadc1);
 
+        /**
+         * Calculates the frequency series for both banks
+         * of the module
+         */
         UX_calculateFrequencySeries(&uexkull,
             440,
             0.5f
@@ -135,14 +140,14 @@ void processBlock(int b)
     int i = 0;
 
     // NOTE: this is for filling the input buffer
-    for (int pos = startBuf; pos < endBuf; pos += 4)
-    {
-        srcLeft[i] = ((rxBuf[pos] << 16) | rxBuf[pos + 1]);
-        srcRight[i] = ((rxBuf[pos + 2] << 16) | rxBuf[pos + 3]);
-        i++;
-    }
+    // for (int pos = startBuf; pos < endBuf; pos += 4)
+    // {
+    //     srcLeft[i] = ((rxBuf[pos] << 16) | rxBuf[pos + 1]);
+    //     srcRight[i] = ((rxBuf[pos + 2] << 16) | rxBuf[pos + 3]);
+    //     i++;
+    // }
 
-    i = 0;
+    // i = 0;
     for (int pos = startBuf; pos < endBuf; pos += 4)
     {
         int lval = 0;
@@ -151,7 +156,7 @@ void processBlock(int b)
         const float factor = (RAND_MAX / 2);
 
         lval = UX_process(&uexkull) * factor;
-        // lval = srcLeft[i];
+        // lval = RAND_MAX / 4;
         rval = lval;
 
         txBuf[pos] = (lval >> 16) & 0xFFFF;
@@ -288,7 +293,7 @@ static void MX_ADC1_Init(void)
   */
     hadc1.Instance = ADC1;
     hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
-    hadc1.Init.Resolution = ADC_RESOLUTION_12B;
+    hadc1.Init.Resolution = ADC_RESOLUTION_8B;
     hadc1.Init.ScanConvMode = DISABLE;
     hadc1.Init.ContinuousConvMode = DISABLE;
     hadc1.Init.DiscontinuousConvMode = DISABLE;

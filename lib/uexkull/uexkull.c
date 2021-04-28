@@ -43,7 +43,7 @@ void UX_calculateFrequencySeries(uexkull_t *self, float fundamental, float diffr
     self->_fundamental = fundamental;
     self->_diffractionConstant = diffractionConstant;
     self->freqArray[0] = fundamental;
-    _UX_diffractionSeries(self->freqArray, NUM_OSC, 0.333);
+    _UX_diffractionSeries(self->freqArray, NUM_OSC, self->_diffractionConstant);
     // TODO: Use the series class in cuteop
     // series_process(&self->series, self->_fundamental, 1, &self->_diffractionConstant);
 }
