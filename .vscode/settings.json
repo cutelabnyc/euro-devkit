@@ -4,6 +4,7 @@
         "stm32f4xx_hal.h": "c",
         "bank.h": "c",
         "arm_math.h": "c",
-        "codec.h": "c"
+        "codec.h": "c",
+        "dsp.h": "c"
     }
 }
