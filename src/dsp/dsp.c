@@ -5,13 +5,13 @@ void DSP_init(dsp_t *self)
     UX_init(&(self->uexkull), SAMPLE_RATE);
 }
 
-void DSP_processBlock(dsp_t *self, bool isHalfCallback)
+void DSP_processBlock(dsp_t *self, adc_t *adc, bool isHalfCallback)
 {
     int startBuf = isHalfCallback * BUF_SAMPLES / 2;
     int endBuf = startBuf + BUF_SAMPLES / 2;
 
     UX_calculateFrequencySeries(&self->uexkull,
-        440,
+        adc->adcValue,
         0.5f
     );
 

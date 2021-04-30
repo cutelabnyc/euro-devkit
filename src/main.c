@@ -19,10 +19,12 @@
 #include "main.h"
 #include "codec/codec.h"
 #include "dsp/dsp.h"
-#include <arm_math.h>
-#include <string.h>
+#include "adc/adc.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <arm_math.h>
+#include <string.h>
+
 
   // STM32 peripherals
 I2C_HandleTypeDef hi2c2;
@@ -38,7 +40,7 @@ t_rampsmooth rampsmooth;
 
 // I/O peripherals
 dsp_t dsp;
-// adc_t adc;
+adc_t adc;
 
 // Variables that keep the state of the DMA TX/RX completion
 volatile int rxHalfComplete = 0;
@@ -47,8 +49,6 @@ volatile int rxFullComplete = 0;
 volatile int txFullComplete = 0;
 
 float freq[NUM_OSC];
-
-float adcValue;
 
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
@@ -85,7 +85,7 @@ int main(void)
 
     /* Initialize local libraries */
     DSP_init(&dsp);
-    // ADC_init();
+    ADC_init(&adc, &hadc1);
     CODEC_init(&hi2c2);
 
     /* Infinite DMA transwmit */
@@ -97,26 +97,18 @@ int main(void)
     {
         if (rxHalfComplete && txHalfComplete)
         {
-            DSP_processBlock(&dsp, 0);
-            // ADC_processBlock();
+            DSP_processBlock(&dsp, &adc, 0);
             rxHalfComplete = 0;
             txHalfComplete = 0;
         }
         else if (rxFullComplete && txFullComplete)
         {
-            DSP_processBlock(&dsp, 1);
-            // ADC_processBlock();
+            DSP_processBlock(&dsp, &adc, 1);
             rxFullComplete = 0;
             txFullComplete = 0;
         }
 
-
-        HAL_ADC_Start(&hadc1);
-        if (HAL_ADC_PollForConversion(&hadc1, 5) == HAL_OK)
-        {
-            adcValue = HAL_ADC_GetValue(&hadc1);
-        }
-        HAL_ADC_Stop(&hadc1);
+        ADC_processBlock(&adc);
     }
 }
 

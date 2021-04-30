@@ -14,6 +14,7 @@ extern "C"
 #include <stdlib.h>
 #include "stm32f7xx_hal.h"
 #include "uexkull.h"
+#include "../adc/adc.h"
 
     typedef struct dsp {
         uint16_t rxBuf[BUF_SAMPLES];
@@ -22,7 +23,7 @@ extern "C"
     } dsp_t;
 
     void DSP_init(dsp_t *self);
-    void DSP_processBlock(dsp_t *self, bool isHalfCallback);
+    void DSP_processBlock(dsp_t *self, adc_t *adc, bool isHalfCallback);
 
 #ifdef __cplusplus
 }
