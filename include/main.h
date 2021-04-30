@@ -23,6 +23,8 @@
 #ifndef __MAIN_H
 #define __MAIN_H
 
+#define SAMPLE_RATE 48000
+
 #ifdef __cplusplus
 extern "C"
 {

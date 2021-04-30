@@ -3,6 +3,7 @@
         "cs43l22.h": "c",
         "stm32f4xx_hal.h": "c",
         "bank.h": "c",
-        "arm_math.h": "c"
+        "arm_math.h": "c",
+        "codec.h": "c"
     }
 }

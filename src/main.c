@@ -24,13 +24,11 @@
 #include <stdlib.h>
 
 I2C_HandleTypeDef hi2c2;
-
 I2S_HandleTypeDef hi2s2;
 I2S_HandleTypeDef hi2s3;
 DMA_HandleTypeDef hdma_spi2_rx;
 DMA_HandleTypeDef hdma_spi3_tx;
 ADC_HandleTypeDef hadc1;
-
 UART_HandleTypeDef huart3;
 
 // Sample size
@@ -51,9 +49,9 @@ float32_t srcLeft[SAMPLES / 2];
 float32_t srcRight[SAMPLES / 2];
 float freq[NUM_OSC];
 
-float adcValue;
+float adcValue[16];
 
-void processBlock(int m);
+void processBlock(int b);
 
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
@@ -87,7 +85,7 @@ int main(void)
     Codec_Init(&hi2c2);
 
     /* Initialize Uexkull */
-    UX_init(&uexkull, 48000);
+    UX_init(&uexkull, SAMPLE_RATE);
 
     /* Infinite DMA transwmit */
     HAL_I2S_Transmit_DMA(&hi2s3, txBuf, SAMPLES * 2);
@@ -109,20 +107,18 @@ int main(void)
             txFullComplete = 0;
         }
 
-        HAL_ADC_Start(&hadc1);
-        if (HAL_ADC_PollForConversion(&hadc1, 5) == HAL_OK)
+        for (int i = 0; i < 16; i++)
         {
-            // adcValue = ((float)(HAL_ADC_GetValue(&hadc1) / (float)UINT8_MAX) * 20000.0f);
-            adcValue = HAL_ADC_GetValue(&hadc1);
+            HAL_ADC_Start(&hadc1);
+            if (HAL_ADC_PollForConversion(&hadc1, 5) == HAL_OK)
+            {
+                adcValue[i] = HAL_ADC_GetValue(&hadc1);
+            }
+            HAL_ADC_Stop(&hadc1);
         }
-        HAL_ADC_Stop(&hadc1);
 
-        /**
-         * Calculates the frequency series for both banks
-         * of the module
-         */
         UX_calculateFrequencySeries(&uexkull,
-            440,
+            adcValue[0],
             0.5f
         );
     }
@@ -148,15 +144,16 @@ void processBlock(int b)
     // }
 
     // i = 0;
+
     for (int pos = startBuf; pos < endBuf; pos += 4)
     {
         int lval = 0;
         int rval = 0;
 
+        // Convert to 32bit int range
         const float factor = (RAND_MAX / 2);
 
         lval = UX_process(&uexkull) * factor;
-        // lval = RAND_MAX / 4;
         rval = lval;
 
         txBuf[pos] = (lval >> 16) & 0xFFFF;
@@ -294,8 +291,8 @@ static void MX_ADC1_Init(void)
     hadc1.Instance = ADC1;
     hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
     hadc1.Init.Resolution = ADC_RESOLUTION_8B;
-    hadc1.Init.ScanConvMode = DISABLE;
-    hadc1.Init.ContinuousConvMode = DISABLE;
+    hadc1.Init.ScanConvMode = ENABLE;
+    hadc1.Init.ContinuousConvMode = ENABLE;
     hadc1.Init.DiscontinuousConvMode = DISABLE;
     hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
     hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
@@ -367,7 +364,7 @@ static void MX_I2S2_Init(void)
     hi2s2.Init.Standard = I2S_STANDARD_PHILIPS;
     hi2s2.Init.DataFormat = I2S_DATAFORMAT_32B;
     hi2s2.Init.MCLKOutput = I2S_MCLKOUTPUT_ENABLE;
-    hi2s2.Init.AudioFreq = I2S_AUDIOFREQ_48K;
+    hi2s2.Init.AudioFreq = SAMPLE_RATE;
     hi2s2.Init.CPOL = I2S_CPOL_LOW;
     hi2s2.Init.ClockSource = I2S_CLOCK_PLL;
     if (HAL_I2S_Init(&hi2s2) != HAL_OK)
@@ -388,7 +385,7 @@ static void MX_I2S3_Init(void)
     hi2s3.Init.Standard = I2S_STANDARD_PHILIPS;
     hi2s3.Init.DataFormat = I2S_DATAFORMAT_32B;
     hi2s3.Init.MCLKOutput = I2S_MCLKOUTPUT_ENABLE;
-    hi2s3.Init.AudioFreq = I2S_AUDIOFREQ_48K;
+    hi2s3.Init.AudioFreq = SAMPLE_RATE;
     hi2s3.Init.CPOL = I2S_CPOL_LOW;
     hi2s3.Init.ClockSource = I2S_CLOCK_PLL;
     if (HAL_I2S_Init(&hi2s3) != HAL_OK)

@@ -12,6 +12,7 @@
 #define UEXKULL_H
 
 #define NUM_OSC 10
+#define NUM_BANKS 2
 #define MAX_FREQ 20000
 #define NUM_DIFFRACTION_CONSTANTS 5
 
