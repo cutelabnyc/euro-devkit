@@ -26,7 +26,7 @@ extern "C"
 
         param_t freq;
         param_t numOsc;
-
+        float adcValue;
     } adc_t;
 
     void ADC_init(adc_t *self, ADC_HandleTypeDef *adcx);
