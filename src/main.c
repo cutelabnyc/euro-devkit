@@ -48,8 +48,6 @@ volatile int txHalfComplete = 0;
 volatile int rxFullComplete = 0;
 volatile int txFullComplete = 0;
 
-float freq[NUM_OSC];
-
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
