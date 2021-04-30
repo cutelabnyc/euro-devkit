@@ -8,8 +8,15 @@ void DSP_init(dsp_t *self)
 static void DSP_processParams(dsp_t *self, adc_t *adc)
 {
     UX_calculateFrequencySeries(&self->uexkull,
-        adc->adcValue,
-        0.5f
+        440,
+        0,
+        0
+    );
+
+    UX_calculateFrequencySeries(&self->uexkull,
+        440,
+        0,
+        1
     );
 }
 
@@ -28,8 +35,8 @@ void DSP_processBlock(dsp_t *self, adc_t *adc, bool isHalfCallback)
         // Convert to 32bit int range
         const float factor = (RAND_MAX / 2);
 
-        lval = UX_process(&(self->uexkull)) * factor;
-        rval = lval;
+        lval = UX_processLeftBank(&(self->uexkull)) * factor;
+        rval = UX_processRightBank(&(self->uexkull)) * factor;
 
         self->txBuf[pos] = (lval >> 16) & 0xFFFF;
         self->txBuf[pos + 1] = lval & 0xFFFF;
