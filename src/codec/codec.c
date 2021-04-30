@@ -24,7 +24,7 @@ const uint16_t w8731_init_data[] =
   * @param  None
   * @retval None
   */
-void Codec_Init(I2C_HandleTypeDef *hi2c)
+void CODEC_init(I2C_HandleTypeDef *hi2c)
 {
     uint8_t i;
 

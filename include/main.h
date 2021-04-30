@@ -23,8 +23,6 @@
 #ifndef __MAIN_H
 #define __MAIN_H
 
-#define SAMPLE_RATE 48000
-
 #ifdef __cplusplus
 extern "C"
 {
@@ -32,11 +30,10 @@ extern "C"
 
     /* Includes ------------------------------------------------------------------*/
 #include "stm32f7xx_hal.h"
-#include "uexkull.h"
 
     /* Private includes ----------------------------------------------------------*/
     /* USER CODE BEGIN Includes */
-    uexkull_t uexkull;
+
     /* USER CODE END Includes */
 
     /* Exported types ------------------------------------------------------------*/

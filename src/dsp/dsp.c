@@ -1,0 +1,34 @@
+#include "dsp.h"
+
+void DSP_init(dsp_t *self)
+{
+    UX_init(&(self->uexkull), SAMPLE_RATE);
+}
+
+void DSP_processBlock(dsp_t *self, bool isHalfCallback)
+{
+    int startBuf = isHalfCallback * BUF_SAMPLES / 2;
+    int endBuf = startBuf + BUF_SAMPLES / 2;
+
+    UX_calculateFrequencySeries(&self->uexkull,
+        440,
+        0.5f
+    );
+
+    for (int pos = startBuf; pos < endBuf; pos += 4)
+    {
+        int lval = 0;
+        int rval = 0;
+
+        // Convert to 32bit int range
+        const float factor = (RAND_MAX / 2);
+
+        lval = UX_process(&(self->uexkull)) * factor;
+        rval = lval;
+
+        self->txBuf[pos] = (lval >> 16) & 0xFFFF;
+        self->txBuf[pos + 1] = lval & 0xFFFF;
+        self->txBuf[pos + 2] = (rval >> 16) & 0xFFFF;
+        self->txBuf[pos + 3] = rval & 0xFFFF;
+    }
+}

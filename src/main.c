@@ -17,12 +17,14 @@
   ******************************************************************************
   */
 #include "main.h"
-#include "codec.h"
+#include "codec/codec.h"
+#include "dsp/dsp.h"
 #include <arm_math.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 
+  // STM32 peripherals
 I2C_HandleTypeDef hi2c2;
 I2S_HandleTypeDef hi2s2;
 I2S_HandleTypeDef hi2s3;
@@ -31,9 +33,12 @@ DMA_HandleTypeDef hdma_spi3_tx;
 ADC_HandleTypeDef hadc1;
 UART_HandleTypeDef huart3;
 
-// Sample size
-#define SAMPLES 512             // Total number of samples left and right
-#define BUF_SAMPLES SAMPLES * 4 // Size of DMA tx/rx buffer samples * left/right * 2 for 32 bit samples
+// Cute-Op peripherals
+t_rampsmooth rampsmooth;
+
+// I/O peripherals
+dsp_t dsp;
+// adc_t adc;
 
 // Variables that keep the state of the DMA TX/RX completion
 volatile int rxHalfComplete = 0;
@@ -41,17 +46,9 @@ volatile int txHalfComplete = 0;
 volatile int rxFullComplete = 0;
 volatile int txFullComplete = 0;
 
-// DMA Buffers
-uint16_t rxBuf[BUF_SAMPLES];
-uint16_t txBuf[BUF_SAMPLES];
-
-float32_t srcLeft[SAMPLES / 2];
-float32_t srcRight[SAMPLES / 2];
 float freq[NUM_OSC];
 
-float adcValue[16];
-
-void processBlock(int b);
+float adcValue;
 
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
@@ -82,90 +79,48 @@ int main(void)
     MX_USART3_UART_Init();
     MX_I2C2_Init();
     MX_ADC1_Init();
-    Codec_Init(&hi2c2);
 
-    /* Initialize Uexkull */
-    UX_init(&uexkull, SAMPLE_RATE);
+    /* Initialize Cute-Op libraries */
+    rampsmooth_init(&rampsmooth, 4);
+
+    /* Initialize local libraries */
+    DSP_init(&dsp);
+    // ADC_init();
+    CODEC_init(&hi2c2);
 
     /* Infinite DMA transwmit */
-    HAL_I2S_Transmit_DMA(&hi2s3, txBuf, SAMPLES * 2);
-    HAL_I2S_Receive_DMA(&hi2s2, rxBuf, SAMPLES * 2);
+    HAL_I2S_Transmit_DMA(&hi2s3, dsp.txBuf, SAMPLES * 2);
+    HAL_I2S_Receive_DMA(&hi2s2, dsp.rxBuf, SAMPLES * 2);
 
     /* Main loop */
     while (1)
     {
         if (rxHalfComplete && txHalfComplete)
         {
-            processBlock(0);
+            DSP_processBlock(&dsp, 0);
+            // ADC_processBlock();
             rxHalfComplete = 0;
             txHalfComplete = 0;
         }
         else if (rxFullComplete && txFullComplete)
         {
-            processBlock(1);
+            DSP_processBlock(&dsp, 1);
+            // ADC_processBlock();
             rxFullComplete = 0;
             txFullComplete = 0;
         }
 
-        for (int i = 0; i < 16; i++)
+
+        HAL_ADC_Start(&hadc1);
+        if (HAL_ADC_PollForConversion(&hadc1, 5) == HAL_OK)
         {
-            HAL_ADC_Start(&hadc1);
-            if (HAL_ADC_PollForConversion(&hadc1, 5) == HAL_OK)
-            {
-                adcValue[i] = HAL_ADC_GetValue(&hadc1);
-            }
-            HAL_ADC_Stop(&hadc1);
+            adcValue = HAL_ADC_GetValue(&hadc1);
         }
-
-        UX_calculateFrequencySeries(&uexkull,
-            adcValue[0],
-            0.5f
-        );
+        HAL_ADC_Stop(&hadc1);
     }
 }
 
-void processBlock(int b)
-{
-    // NOTE: These GPIO functions are just for confirmation on the
-    // oscilliscope that the RX/TX callback is working
-    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_5, GPIO_PIN_SET);
-
-    int startBuf = b * BUF_SAMPLES / 2;
-    int endBuf = startBuf + BUF_SAMPLES / 2;
-
-    int i = 0;
-
-    // NOTE: this is for filling the input buffer
-    // for (int pos = startBuf; pos < endBuf; pos += 4)
-    // {
-    //     srcLeft[i] = ((rxBuf[pos] << 16) | rxBuf[pos + 1]);
-    //     srcRight[i] = ((rxBuf[pos + 2] << 16) | rxBuf[pos + 3]);
-    //     i++;
-    // }
-
-    // i = 0;
-
-    for (int pos = startBuf; pos < endBuf; pos += 4)
-    {
-        int lval = 0;
-        int rval = 0;
-
-        // Convert to 32bit int range
-        const float factor = (RAND_MAX / 2);
-
-        lval = UX_process(&uexkull) * factor;
-        rval = lval;
-
-        txBuf[pos] = (lval >> 16) & 0xFFFF;
-        txBuf[pos + 1] = lval & 0xFFFF;
-        txBuf[pos + 2] = (rval >> 16) & 0xFFFF;
-        txBuf[pos + 3] = rval & 0xFFFF;
-
-        i++;
-    }
-
-    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_5, GPIO_PIN_RESET);
-}
+/**********************************************************/
 
 void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s)
 {
@@ -200,6 +155,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     /* Prevent unused argument(s) compilation warning */
     UNUSED(GPIO_Pin);
 }
+
+/**********************************************************/
 
 /**
   * @brief System Clock Configuration
@@ -512,11 +469,6 @@ static void MX_GPIO_Init(void)
     GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(USB_VBUS_GPIO_Port, &GPIO_InitStruct);
-
-    GPIO_InitStruct.Pin = GPIO_PIN_2;
-    GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
     /* EXTI interrupt init*/
     HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
