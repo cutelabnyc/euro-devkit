@@ -7,6 +7,7 @@ extern "C"
 #endif
 
 #include "stm32f7xx_hal.h"
+#include <cuteop.h>
 
     typedef enum component {
         POTENTIOMETER,
@@ -23,6 +24,7 @@ extern "C"
 
     typedef struct adc {
         ADC_HandleTypeDef *hadc;
+        t_rampsmooth rampsmooth;
 
         param_t freq;
         param_t numOsc;
@@ -30,7 +32,7 @@ extern "C"
     } adc_t;
 
     void ADC_init(adc_t *self, ADC_HandleTypeDef *adcx);
-    void ADC_init_param(param_t *self, component_t component);
+    // static void ADC_init_param(param_t *self, component_t component);
     void ADC_processBlock(adc_t *self);
 
 #ifdef __cplusplus

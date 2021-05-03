@@ -5,6 +5,8 @@ void ADC_init(adc_t *self, ADC_HandleTypeDef *adcx)
 {
     self->adcValue = 0;
     self->hadc = adcx;
+
+    rampsmooth_init(&self->rampsmooth, 4);
 }
 
 

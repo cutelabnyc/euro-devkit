@@ -35,9 +35,6 @@ DMA_HandleTypeDef hdma_spi3_tx;
 ADC_HandleTypeDef hadc1;
 UART_HandleTypeDef huart3;
 
-// Cute-Op peripherals
-t_rampsmooth rampsmooth;
-
 // I/O peripherals
 dsp_t dsp;
 adc_t adc;
@@ -77,9 +74,6 @@ int main(void)
     MX_USART3_UART_Init();
     MX_I2C2_Init();
     MX_ADC1_Init();
-
-    /* Initialize Cute-Op libraries */
-    rampsmooth_init(&rampsmooth, 4);
 
     /* Initialize local libraries */
     DSP_init(&dsp);
