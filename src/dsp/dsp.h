@@ -8,7 +8,7 @@ extern "C"
 
 #define SAMPLES 512             // Total number of samples left and right
 #define BUF_SAMPLES SAMPLES * 4 // Size of DMA tx/rx buffer samples * left/right * 2 for 32 bit samples
-#define SAMPLE_RATE 41000
+#define SAMPLE_RATE 16000
 
 #include <stdbool.h>
 #include <stdlib.h>

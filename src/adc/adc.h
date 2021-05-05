@@ -16,10 +16,21 @@ extern "C"
         INLET
     } component_t;
 
+    // typedef enum valuetype {
+    //     UINT16_T,
+    //     UINT8_T
+    // } valuetype_t;
+
     typedef struct param {
         component_t component;
         GPIO_InitTypeDef GPIO_InitStruct;
-        uint16_t val; // TODO: Like in the rampsmooth class, how on earth do I make this mutable
+        // valuetype_t type;
+        // union val {
+        //     uint8_t val_uint8;
+        //     uint16_t val_uint16;
+        // };
+        // uint16_t val; 
+        // TODO: Like in the rampsmooth class, how on earth do I make this mutable
     } param_t;
 
     typedef struct adc {
@@ -28,7 +39,7 @@ extern "C"
 
         param_t freq;
         param_t numOsc;
-        float adcValue;
+        uint32_t adcValArray[2];
     } adc_t;
 
     void ADC_init(adc_t *self, ADC_HandleTypeDef *adcx);
