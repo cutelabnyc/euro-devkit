@@ -16,7 +16,7 @@ extern "C"
 #define CODEC_ADDRESS                   (W8731_ADDR_0 << 1)
 #define CODEC_FLAG_TIMEOUT             ((uint32_t)0x1000)
 
-    void Codec_Init(I2C_HandleTypeDef *hi2c);
+    void CODEC_init(I2C_HandleTypeDef *hi2c);
 
 
 #ifdef __cplusplus

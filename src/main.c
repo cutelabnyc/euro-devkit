@@ -17,43 +17,36 @@
   ******************************************************************************
   */
 #include "main.h"
-#include "codec.h"
-#include <arm_math.h>
-#include <string.h>
+#include "codec/codec.h"
+#include "dsp/dsp.h"
+#include "adc/adc.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <arm_math.h>
+#include <string.h>
 
+
+  // STM32 peripherals
 I2C_HandleTypeDef hi2c2;
-
 I2S_HandleTypeDef hi2s2;
 I2S_HandleTypeDef hi2s3;
 DMA_HandleTypeDef hdma_spi2_rx;
 DMA_HandleTypeDef hdma_spi3_tx;
 ADC_HandleTypeDef hadc1;
-
+TIM_HandleTypeDef htim_adc1;
+DMA_HandleTypeDef hdma_adc1;
 UART_HandleTypeDef huart3;
 
-// Sample size
-#define SAMPLES 512             // Total number of samples left and right
-#define BUF_SAMPLES SAMPLES * 4 // Size of DMA tx/rx buffer samples * left/right * 2 for 32 bit samples
+// I/O peripherals
+dsp_t dsp;
+adc_t adc;
 
 // Variables that keep the state of the DMA TX/RX completion
 volatile int rxHalfComplete = 0;
 volatile int txHalfComplete = 0;
 volatile int rxFullComplete = 0;
 volatile int txFullComplete = 0;
-
-// DMA Buffers
-uint16_t rxBuf[BUF_SAMPLES];
-uint16_t txBuf[BUF_SAMPLES];
-
-float32_t srcLeft[SAMPLES / 2];
-float32_t srcRight[SAMPLES / 2];
-float freq[NUM_OSC];
-
-uint32_t adcValue;
-
-void processBlock(int m);
+volatile int adcFullComplete = 0;
 
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
@@ -63,6 +56,7 @@ static void MX_I2S3_Init(void);
 static void MX_USART3_UART_Init(void);
 static void MX_I2C2_Init(void);
 static void MX_ADC1_Init(void);
+static void MX_TIM6_Init(void);
 
 /**
   * @brief  The application entry point.
@@ -83,87 +77,51 @@ int main(void)
     MX_I2S3_Init();
     MX_USART3_UART_Init();
     MX_I2C2_Init();
+    MX_TIM6_Init();
     MX_ADC1_Init();
-    Codec_Init(&hi2c2);
 
-    /* Initialize Uexkull */
-    UX_init(&uexkull, 48000);
+    /* Initialize local libraries */
+    DSP_init(&dsp);
+    ADC_init(&adc, &hadc1);
+    CODEC_init(&hi2c2);
 
     /* Infinite DMA transwmit */
-    HAL_I2S_Transmit_DMA(&hi2s3, txBuf, SAMPLES * 2);
-    HAL_I2S_Receive_DMA(&hi2s2, rxBuf, SAMPLES * 2);
+    HAL_I2S_Transmit_DMA(&hi2s3, dsp.txBuf, SAMPLES * 2);
+    HAL_I2S_Receive_DMA(&hi2s2, dsp.rxBuf, SAMPLES * 2);
+    HAL_ADC_Start_DMA(&hadc1, adc.adcBuf, 2);
+
+    /* Init the timer for triggering the ADC */
+    HAL_TIM_Base_Start(&htim_adc1);
 
     /* Main loop */
     while (1)
     {
+        // ADC Callback
+        if (adcFullComplete)
+        {
+            ADC_processBlock(&adc);
+            adcFullComplete = 0;
+        }
+
+        // DSP Half/Full Callback
         if (rxHalfComplete && txHalfComplete)
         {
-            processBlock(0);
+            DSP_processBlock(&dsp, &adc, 0);
             rxHalfComplete = 0;
             txHalfComplete = 0;
         }
         else if (rxFullComplete && txFullComplete)
         {
-            processBlock(1);
+            DSP_processBlock(&dsp, &adc, 1);
             rxFullComplete = 0;
             txFullComplete = 0;
         }
-
-        HAL_ADC_Start(&hadc1);
-        if (HAL_ADC_PollForConversion(&hadc1, 5) == HAL_OK)
-        {
-            adcValue = HAL_ADC_GetValue(&hadc1);
-        }
-        HAL_ADC_Stop(&hadc1);
-
-        UX_calculateFrequencySeries(&uexkull,
-            440,
-            0.5f
-        );
     }
 }
 
-void processBlock(int b)
-{
-    // NOTE: These GPIO functions are just for confirmation on the
-    // oscilliscope that the RX/TX callback is working
-    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_5, GPIO_PIN_SET);
-
-    int startBuf = b * BUF_SAMPLES / 2;
-    int endBuf = startBuf + BUF_SAMPLES / 2;
-
-    int i = 0;
-
-    // NOTE: this is for filling the input buffer
-    for (int pos = startBuf; pos < endBuf; pos += 4)
-    {
-        srcLeft[i] = ((rxBuf[pos] << 16) | rxBuf[pos + 1]);
-        srcRight[i] = ((rxBuf[pos + 2] << 16) | rxBuf[pos + 3]);
-        i++;
-    }
-
-    i = 0;
-    for (int pos = startBuf; pos < endBuf; pos += 4)
-    {
-        int lval = 0;
-        int rval = 0;
-
-        const float factor = (RAND_MAX / 2);
-
-        lval = UX_process(&uexkull) * factor;
-        // lval = srcLeft[i];
-        rval = lval;
-
-        txBuf[pos] = (lval >> 16) & 0xFFFF;
-        txBuf[pos + 1] = lval & 0xFFFF;
-        txBuf[pos + 2] = (rval >> 16) & 0xFFFF;
-        txBuf[pos + 3] = rval & 0xFFFF;
-
-        i++;
-    }
-
-    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_5, GPIO_PIN_RESET);
-}
+/******************************************************
+                CALLBACK FUNCTIONS
+ ******************************************************/
 
 void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s)
 {
@@ -193,11 +151,19 @@ void HAL_I2S_RxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
     rxHalfComplete = 1;
 }
 
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
+{
+    UNUSED(hadc1);
+    adcFullComplete = 1;
+}
+
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
     /* Prevent unused argument(s) compilation warning */
     UNUSED(GPIO_Pin);
 }
+
+/**********************************************************/
 
 /**
   * @brief System Clock Configuration
@@ -284,28 +250,35 @@ static void MX_ADC1_Init(void)
     /* USER CODE BEGIN ADC1_Init 1 */
 
     /* USER CODE END ADC1_Init 1 */
-    /** Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
-  */
+    /** Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion) */
     hadc1.Instance = ADC1;
-    hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
+    hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV2;
     hadc1.Init.Resolution = ADC_RESOLUTION_12B;
-    hadc1.Init.ScanConvMode = DISABLE;
+    hadc1.Init.ScanConvMode = ENABLE;
     hadc1.Init.ContinuousConvMode = DISABLE;
     hadc1.Init.DiscontinuousConvMode = DISABLE;
-    hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
-    hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+    hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
+    hadc1.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T6_TRGO;
     hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-    hadc1.Init.NbrOfConversion = 1;
-    hadc1.Init.DMAContinuousRequests = DISABLE;
-    hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+    hadc1.Init.NbrOfConversion = 2;
+    hadc1.Init.DMAContinuousRequests = ENABLE;
+    hadc1.Init.EOCSelection = ADC_EOC_SEQ_CONV;
     if (HAL_ADC_Init(&hadc1) != HAL_OK)
     {
         Error_Handler();
     }
-    /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
-  */
+
+    /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time. */
+    sConfig.Channel = ADC_CHANNEL_9;
+    sConfig.Rank = ADC_REGULAR_RANK_1;
+    sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+    if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time. */
     sConfig.Channel = ADC_CHANNEL_12;
-    sConfig.Rank = 1;
+    sConfig.Rank = ADC_REGULAR_RANK_2;
     sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
     if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
     {
@@ -314,6 +287,37 @@ static void MX_ADC1_Init(void)
     /* USER CODE BEGIN ADC1_Init 2 */
 
     /* USER CODE END ADC1_Init 2 */
+}
+
+/* TIM6 init function */
+static void MX_TIM6_Init(void)
+{
+    TIM_ClockConfigTypeDef sClockSourceConfig;
+    TIM_MasterConfigTypeDef sMasterConfig;
+
+    htim_adc1.Instance = TIM6;
+    htim_adc1.Init.Prescaler = 8400;
+    htim_adc1.Init.CounterMode = TIM_COUNTERMODE_UP;
+    htim_adc1.Init.Period = 100;
+    htim_adc1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+    if (HAL_TIM_Base_Init(&htim_adc1) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
+    sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+    if (HAL_TIM_ConfigClockSource(&htim_adc1, &sClockSourceConfig) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
+    sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
+    sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+    if (HAL_TIMEx_MasterConfigSynchronization(&htim_adc1, &sMasterConfig) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
 }
 
 /**
@@ -362,7 +366,7 @@ static void MX_I2S2_Init(void)
     hi2s2.Init.Standard = I2S_STANDARD_PHILIPS;
     hi2s2.Init.DataFormat = I2S_DATAFORMAT_32B;
     hi2s2.Init.MCLKOutput = I2S_MCLKOUTPUT_ENABLE;
-    hi2s2.Init.AudioFreq = I2S_AUDIOFREQ_48K;
+    hi2s2.Init.AudioFreq = SAMPLE_RATE;
     hi2s2.Init.CPOL = I2S_CPOL_LOW;
     hi2s2.Init.ClockSource = I2S_CLOCK_PLL;
     if (HAL_I2S_Init(&hi2s2) != HAL_OK)
@@ -383,7 +387,7 @@ static void MX_I2S3_Init(void)
     hi2s3.Init.Standard = I2S_STANDARD_PHILIPS;
     hi2s3.Init.DataFormat = I2S_DATAFORMAT_32B;
     hi2s3.Init.MCLKOutput = I2S_MCLKOUTPUT_ENABLE;
-    hi2s3.Init.AudioFreq = I2S_AUDIOFREQ_48K;
+    hi2s3.Init.AudioFreq = SAMPLE_RATE;
     hi2s3.Init.CPOL = I2S_CPOL_LOW;
     hi2s3.Init.ClockSource = I2S_CLOCK_PLL;
     if (HAL_I2S_Init(&hi2s3) != HAL_OK)
@@ -423,14 +427,21 @@ static void MX_DMA_Init(void)
 
     /* DMA controller clock enable */
     __HAL_RCC_DMA1_CLK_ENABLE();
+    __HAL_RCC_DMA2_CLK_ENABLE();
 
     /* DMA interrupt init */
     /* DMA1_Stream1_IRQn interrupt configuration */
     HAL_NVIC_SetPriority(DMA1_Stream1_IRQn, 0, 0);
     HAL_NVIC_EnableIRQ(DMA1_Stream1_IRQn);
+
     /* DMA1_Stream5_IRQn interrupt configuration */
     HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 0, 0);
     HAL_NVIC_EnableIRQ(DMA1_Stream5_IRQn);
+
+    /* DMA interrupt init */
+    /* DMA2_Stream0_IRQn interrupt configuration */
+    HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
 }
 
 /**
@@ -510,11 +521,6 @@ static void MX_GPIO_Init(void)
     GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(USB_VBUS_GPIO_Port, &GPIO_InitStruct);
-
-    GPIO_InitStruct.Pin = GPIO_PIN_2;
-    GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
     /* EXTI interrupt init*/
     HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);

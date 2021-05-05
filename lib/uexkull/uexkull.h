@@ -12,6 +12,7 @@
 #define UEXKULL_H
 
 #define NUM_OSC 10
+#define NUM_BANKS 2
 #define MAX_FREQ 20000
 #define NUM_DIFFRACTION_CONSTANTS 5
 
@@ -22,29 +23,30 @@
  */
 typedef struct uexkull
 {
-    t_bank bank;
+    t_bank bank[NUM_BANKS];
     // t_series series;
-    float freqArray[NUM_OSC];
+    float freqArray[NUM_BANKS][NUM_OSC];
+    float _diffractionConstant[NUM_BANKS];
+    bool _diffractionWidth[NUM_BANKS]; //0: sparse, 1: dense
+
     float _fundamental;
-    float _diffractionConstant;
-    bool _diffractionWidth; //0: sparse, 1: dense
 } uexkull_t;
 
 /**
  * Constants for diffraction series calculation
  */
- // const float diffractionConstants[NUM_DIFFRACTION_CONSTANTS] =
- // {
- //     1.0f,
- //     0.5f,
- //     0.3f,
- //     0.2f,
- //     0.142857f
- // };
+static const float diffractionConstants[NUM_DIFFRACTION_CONSTANTS] =
+{
+    1.0f,
+    0.5f,
+    0.333f,
+    0.2f,
+    0.142857f
+};
 
- /**
-  * Initialize the 'uexkull' struct
-  */
+/**
+ * Initialize the 'uexkull' struct
+ */
 void UX_init(uexkull_t *self, float samplerate);
 
 /**
@@ -57,7 +59,7 @@ void UX_destroy(uexkull_t *self);
 /**
  * Calculates the frequency series based on the fundamental
  */
-void UX_calculateFrequencySeries(uexkull_t *self, float fundamental, float diffractionConstant);
+void UX_calculateFrequencySeries(uexkull_t *self, float fundamental, uint8_t numConstant, uint8_t numBank);
 
 /**
  * Processes a single sample in the module's IO. The process
@@ -66,6 +68,8 @@ void UX_calculateFrequencySeries(uexkull_t *self, float fundamental, float diffr
  *
  * TODO: Add and describe parameters
  */
-float UX_process(uexkull_t *self);
+float UX_processLeftBank(uexkull_t *self);
+float UX_processRightBank(uexkull_t *self);
+
 
 #endif /* OPPORTUNITY_H */
