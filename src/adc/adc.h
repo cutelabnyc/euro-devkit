@@ -6,44 +6,42 @@ extern "C"
 {
 #endif
 
+#define NUM_PARAMS 2
+
 #include "stm32f7xx_hal.h"
 #include <cuteop.h>
 
+    // TODO: This could be for a future API in which
+    // the type of val in param_t could be solely based
+    // on which component is used in any given module's
+    // hardware, instead of everything being uint16_t
     typedef enum component {
-        POTENTIOMETER,
+        POTENTIOMETER_128K,
+        POTENTIOMETER_256K,
         SWITCH,
         LED,
         INLET
     } component_t;
 
-    // typedef enum valuetype {
-    //     UINT16_T,
-    //     UINT8_T
-    // } valuetype_t;
-
+    // TODO: GPIO values are currently initialized in
+    // stm32f7xx_hal_msp.c, but it would be more efficient
+    // to centralize GPIO initialization to this file
     typedef struct param {
         component_t component;
-        GPIO_InitTypeDef GPIO_InitStruct;
-        // valuetype_t type;
-        // union val {
-        //     uint8_t val_uint8;
-        //     uint16_t val_uint16;
-        // };
-        // uint16_t val; 
-        // TODO: Like in the rampsmooth class, how on earth do I make this mutable
+        // GPIO_InitTypeDef GPIO_InitStruct;
+        uint16_t val;
     } param_t;
 
     typedef struct adc {
         ADC_HandleTypeDef *hadc;
-        t_rampsmooth rampsmooth;
+        uint32_t adcBuf[NUM_PARAMS];
+        // t_rampsmooth rampsmooth;
 
-        param_t freq;
-        param_t numOsc;
-        uint32_t adcValArray[2];
+        param_t fundamental;
+        param_t fineTune;
     } adc_t;
 
     void ADC_init(adc_t *self, ADC_HandleTypeDef *adcx);
-    // static void ADC_init_param(param_t *self, component_t component);
     void ADC_processBlock(adc_t *self);
 
 #ifdef __cplusplus

@@ -8,13 +8,13 @@ void DSP_init(dsp_t *self)
 static void DSP_processParams(dsp_t *self, adc_t *adc)
 {
     UX_calculateFrequencySeries(&self->uexkull,
-        adc->adcValArray[0],
+        adc->adcBuf[0],
         1,
         0
     );
 
     UX_calculateFrequencySeries(&self->uexkull,
-        adc->adcValArray[1],
+        adc->adcBuf[1],
         1,
         1
     );

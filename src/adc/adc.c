@@ -1,23 +1,32 @@
 #include "adc.h"
 
+static void ADC_init_param(param_t *self, component_t component)
+{
+    self->component = component;
+
+    self->val = 0;
+}
 
 void ADC_init(adc_t *self, ADC_HandleTypeDef *adcx)
 {
+    // Initialize HAL ADC and ADC DMA buffer
     self->hadc = adcx;
-    self->adcValArray[0] = 0;
-    self->adcValArray[1] = 0;
 
+    for (int i = 0; i < NUM_PARAMS; i++)
+    {
+        self->adcBuf[i] = 0;
+    }
 
-    rampsmooth_init(&self->rampsmooth, 4);
+    // Initialize params one by one
+    ADC_init_param(&self->fundamental, POTENTIOMETER_256K);
+    ADC_init_param(&self->fineTune, POTENTIOMETER_256K);
+
+    // Initialize other signal processing components
+    // rampsmooth_init(&self->rampsmooth, 4);
 }
-
 
 void ADC_processBlock(adc_t *self)
 {
-    // HAL_ADC_Start(self->hadc);
-    // if (HAL_ADC_PollForConversion(self->hadc, 5) == HAL_OK)
-    // {
-    //     self->adcValue = HAL_ADC_GetValue(self->hadc);
-    // }
-    // HAL_ADC_Stop(self->hadc);
+    self->fundamental.val = self->adcBuf[0];
+    self->fineTune.val = self->adcBuf[1];
 }

@@ -30,7 +30,6 @@ extern DMA_HandleTypeDef hdma_spi3_tx;
 
 extern DMA_HandleTypeDef hdma_adc1;
 
-
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN TD */
 

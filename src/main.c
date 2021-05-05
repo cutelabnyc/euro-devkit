@@ -88,7 +88,7 @@ int main(void)
     /* Infinite DMA transwmit */
     HAL_I2S_Transmit_DMA(&hi2s3, dsp.txBuf, SAMPLES * 2);
     HAL_I2S_Receive_DMA(&hi2s2, dsp.rxBuf, SAMPLES * 2);
-    HAL_ADC_Start_DMA(&hadc1, adc.adcValArray, 2);
+    HAL_ADC_Start_DMA(&hadc1, adc.adcBuf, 2);
 
     /* Init the timer for triggering the ADC */
     HAL_TIM_Base_Start(&htim_adc1);
@@ -99,7 +99,7 @@ int main(void)
         // ADC Callback
         if (adcFullComplete)
         {
-            // ADC_processBlock(&adc);
+            ADC_processBlock(&adc);
             adcFullComplete = 0;
         }
 
@@ -253,7 +253,7 @@ static void MX_ADC1_Init(void)
     /** Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion) */
     hadc1.Instance = ADC1;
     hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV2;
-    hadc1.Init.Resolution = ADC_RESOLUTION_8B;
+    hadc1.Init.Resolution = ADC_RESOLUTION_12B;
     hadc1.Init.ScanConvMode = ENABLE;
     hadc1.Init.ContinuousConvMode = DISABLE;
     hadc1.Init.DiscontinuousConvMode = DISABLE;
@@ -298,7 +298,7 @@ static void MX_TIM6_Init(void)
     htim_adc1.Instance = TIM6;
     htim_adc1.Init.Prescaler = 8400;
     htim_adc1.Init.CounterMode = TIM_COUNTERMODE_UP;
-    htim_adc1.Init.Period = 5;
+    htim_adc1.Init.Period = 100;
     htim_adc1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
     if (HAL_TIM_Base_Init(&htim_adc1) != HAL_OK)
     {
