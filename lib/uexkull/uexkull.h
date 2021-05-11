@@ -68,8 +68,8 @@ void UX_calculateFrequencySeries(uexkull_t *self, float fundamental, uint8_t num
  *
  * TODO: Add and describe parameters
  */
-float UX_processLeftBank(uexkull_t *self);
-float UX_processRightBank(uexkull_t *self);
+float UX_processLeftBank(uexkull_t *self, float *gainValues);
+float UX_processRightBank(uexkull_t *self, float *gainValues);
 
 
 #endif /* OPPORTUNITY_H */

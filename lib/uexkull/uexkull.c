@@ -62,20 +62,20 @@ void UX_calculateFrequencySeries(uexkull_t *self, float fundamental, uint8_t num
     // series_process(&self->series, self->_fundamental, 1, &self->_diffractionConstant);
 }
 
-float UX_processLeftBank(uexkull_t *self)
+float UX_processLeftBank(uexkull_t *self, float *gainValues)
 {
     float sig = 0;
     bank_setFrequencies(&(self->bank[0]), self->freqArray[0], NUM_OSC);
-    sig += bank_process(&(self->bank[0]));
+    sig += bank_process(&(self->bank[0]), gainValues);
 
     return sig;
 }
 
-float UX_processRightBank(uexkull_t *self)
+float UX_processRightBank(uexkull_t *self, float *gainValues)
 {
     float sig = 0;
     bank_setFrequencies(&(self->bank[1]), self->freqArray[1], NUM_OSC);
-    sig += bank_process(&(self->bank[1]));
+    sig += bank_process(&(self->bank[1]), gainValues);
 
     return sig;
 }

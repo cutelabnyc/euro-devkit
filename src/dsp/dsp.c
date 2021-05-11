@@ -7,15 +7,18 @@ void DSP_init(dsp_t *self)
 
 static void DSP_processParams(dsp_t *self, adc_t *adc)
 {
+    float f = ((float)adc->fundamental.val / 256.0f);
+    f = f * f * 15000.0f;
+    // uint8_t diffractionConstant = adc->diffractionConstant.val
     UX_calculateFrequencySeries(&self->uexkull,
-        adc->fundamental.val,
-        1,
+        f,
+        adc->diffractionConstant.val,
         0
     );
 
     UX_calculateFrequencySeries(&self->uexkull,
-        adc->fineTune.val,
-        1,
+        f,
+        adc->diffractionConstant.val,
         1
     );
 }
@@ -27,6 +30,22 @@ void DSP_processBlock(dsp_t *self, adc_t *adc, bool isHalfCallback)
 
     DSP_processParams(self, adc);
 
+    float gainArray[NUM_OSC];
+
+    for (int i = 0; i < NUM_OSC; i++)
+    {
+        if (i < adc->numOsc.val - 1){
+            gainArray[i] = 1.0f;
+        }
+        else if (i < adc->numOsc.val && i + 1 > adc->numOsc.val) {
+            gainArray[i] = adc->numOsc.val % 1;
+        }
+        else {
+            gainArray[i] = 0.0f;
+
+        }
+    }
+
     for (int pos = startBuf; pos < endBuf; pos += 4)
     {
         int lval = 0;
@@ -35,8 +54,8 @@ void DSP_processBlock(dsp_t *self, adc_t *adc, bool isHalfCallback)
         // Convert to 32bit int range
         const float factor = (RAND_MAX / 2);
 
-        lval = UX_processLeftBank(&(self->uexkull)) * factor;
-        rval = UX_processRightBank(&(self->uexkull)) * factor;
+        lval = UX_processLeftBank(&(self->uexkull), gainArray) * factor;
+        rval = UX_processRightBank(&(self->uexkull), gainArray) * factor;
 
         self->txBuf[pos] = (lval >> 16) & 0xFFFF;
         self->txBuf[pos + 1] = lval & 0xFFFF;

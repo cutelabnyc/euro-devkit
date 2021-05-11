@@ -6,7 +6,8 @@ extern "C"
 {
 #endif
 
-#define NUM_PARAMS 2
+#define EURORACK_NUM_PARAMS 4
+#define ADC_BUFFER_LENGTH 100
 
 #include "stm32f7xx_hal.h"
 #include <cuteop.h>
@@ -16,8 +17,8 @@ extern "C"
     // on which component is used in any given module's
     // hardware, instead of everything being uint16_t
     typedef enum component {
-        POTENTIOMETER_128K,
-        POTENTIOMETER_256K,
+        POTENTIOMETER_25K,
+        POTENTIOMETER_50K,
         SWITCH,
         LED,
         INLET
@@ -28,17 +29,30 @@ extern "C"
     // to centralize GPIO initialization to this file
     typedef struct param {
         component_t component;
+        t_rampsmooth rampsmooth;
         // GPIO_InitTypeDef GPIO_InitStruct;
-        uint16_t val;
+        uint32_t val;
     } param_t;
 
     typedef struct adc {
         ADC_HandleTypeDef *hadc;
-        uint32_t adcBuf[NUM_PARAMS];
-        // t_rampsmooth rampsmooth;
+
+        // NOTE: ADC elements are initialized in the order 
+        // in which they are initialized in MX_ADC_Init()
+        uint32_t adcBuf[EURORACK_NUM_PARAMS];
+
+        uint8_t counter;
 
         param_t fundamental;
         param_t fineTune;
+        param_t diffractionConstant;
+        param_t numOsc;
+        // param_t logLin;
+        // param_t waveform;
+        // param_t lfoFreq;
+        // param_t lfoPhaseOffset
+        // param_t lfoFreqOffset
+
     } adc_t;
 
     void ADC_init(adc_t *self, ADC_HandleTypeDef *adcx);
