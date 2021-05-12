@@ -7,9 +7,9 @@ void DSP_init(dsp_t *self)
 
 static void DSP_processParams(dsp_t *self, adc_t *adc)
 {
-    float f = ((float)adc->fundamental.val / 256.0f);
+    float f = ((float)adc->fundamental.val / ADC_BIT_DEPTH);
     f = f * f * 15000.0f;
-    // uint8_t diffractionConstant = adc->diffractionConstant.val
+
     UX_calculateFrequencySeries(&self->uexkull,
         f,
         adc->diffractionConstant.val,
@@ -42,7 +42,6 @@ void DSP_processBlock(dsp_t *self, adc_t *adc, bool isHalfCallback)
         }
         else {
             gainArray[i] = 0.0f;
-
         }
     }
 

@@ -7,7 +7,8 @@ extern "C"
 #endif
 
 #define EURORACK_NUM_PARAMS 4
-#define ADC_BUFFER_LENGTH 100
+#define ADC_BUFFER_LENGTH 2
+#define ADC_BIT_DEPTH 4096.0f
 
 #include "stm32f7xx_hal.h"
 #include <cuteop.h>
@@ -17,7 +18,7 @@ extern "C"
     // on which component is used in any given module's
     // hardware, instead of everything being uint16_t
     typedef enum component {
-        POTENTIOMETER_25K,
+        POTENTIOMETER_10K,
         POTENTIOMETER_50K,
         SWITCH,
         LED,
@@ -40,8 +41,6 @@ extern "C"
         // NOTE: ADC elements are initialized in the order 
         // in which they are initialized in MX_ADC_Init()
         uint32_t adcBuf[EURORACK_NUM_PARAMS];
-
-        uint8_t counter;
 
         param_t fundamental;
         param_t fineTune;

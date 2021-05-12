@@ -232,6 +232,7 @@ void SystemClock_Config(void)
     }
 }
 
+
 /**
   * @brief ADC1 Initialization Function
   * @param None
@@ -316,9 +317,9 @@ static void MX_TIM6_Init(void)
     TIM_MasterConfigTypeDef sMasterConfig;
 
     htim_adc1.Instance = TIM6;
-    htim_adc1.Init.Prescaler = 21600;
+    htim_adc1.Init.Prescaler = 10;
     htim_adc1.Init.CounterMode = TIM_COUNTERMODE_UP;
-    htim_adc1.Init.Period = 10;
+    htim_adc1.Init.Period = 100;
     htim_adc1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
     htim_adc1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
     if (HAL_TIM_Base_Init(&htim_adc1) != HAL_OK)
@@ -333,7 +334,7 @@ static void MX_TIM6_Init(void)
     }
 
     sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
-    sMasterConfig.MasterOutputTrigger2 = TIM_TRGO2_RESET;
+    // sMasterConfig.MasterOutputTrigger2 = TIM_TRGO2_RESET;
     sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
     if (HAL_TIMEx_MasterConfigSynchronization(&htim_adc1, &sMasterConfig) != HAL_OK)
     {
