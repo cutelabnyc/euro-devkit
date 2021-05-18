@@ -1,4 +1,5 @@
 #include "dsp.h"
+#include <arm_math.h>
 
 void DSP_init(dsp_t *self)
 {
@@ -7,17 +8,21 @@ void DSP_init(dsp_t *self)
 
 static void DSP_processParams(dsp_t *self, adc_t *adc)
 {
-    float f = ((float)adc->fundamental.val / ADC_BIT_DEPTH);
-    f = f * f * 15000.0f;
+    float fundamental = ((float)adc->fundamental.val / ADC_BIT_DEPTH);
+    float fine = ((float)adc->fineTune.val / ADC_BIT_DEPTH);
+
+    fundamental = (pow(fundamental, 2) * 15000.0f);
+    fine = pow(fine, 2) * ((float)log(fundamental) * 50.0f);
+    fundamental += fine;
 
     UX_calculateFrequencySeries(&self->uexkull,
-        f,
+        fundamental,
         adc->diffractionConstant.val,
         0
     );
 
     UX_calculateFrequencySeries(&self->uexkull,
-        f,
+        fundamental,
         adc->diffractionConstant.val,
         1
     );
@@ -38,7 +43,7 @@ void DSP_processBlock(dsp_t *self, adc_t *adc, bool isHalfCallback)
             gainArray[i] = 1.0f;
         }
         else if (i < adc->numOsc.val && i + 1 > adc->numOsc.val) {
-            gainArray[i] = adc->numOsc.val % 1;
+            gainArray[i] = 1.0f - adc->numOsc.val;
         }
         else {
             gainArray[i] = 0.0f;
