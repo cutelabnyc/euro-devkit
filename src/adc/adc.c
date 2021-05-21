@@ -6,7 +6,7 @@ static void ADC_init_param(param_t *self, component_t component)
     self->component = component;
     self->val = 0;
 
-    rampsmooth_init(&self->rampsmooth, ADC_BUFFER_LENGTH);
+    fbsmooth_init(&self->fbsmooth);
 
 }
 
@@ -25,6 +25,13 @@ void ADC_init(adc_t *self, ADC_HandleTypeDef *adcx)
     ADC_init_param(&self->fineTune, POTENTIOMETER_50K);
     ADC_init_param(&self->diffractionConstant, POTENTIOMETER_50K);
     ADC_init_param(&self->numOsc, POTENTIOMETER_50K);
+
+    // Activate Mux pin
+    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_5, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_6, GPIO_PIN_RESET);
+
 }
 
 void ADC_processBlock(adc_t *self)
@@ -32,9 +39,14 @@ void ADC_processBlock(adc_t *self)
     self->diffractionConstant.val = ((float)self->adcBuf[2] / ADC_BIT_DEPTH) * 5;
     self->numOsc.val = ((float)self->adcBuf[3] / ADC_BIT_DEPTH) * NUM_OSC;
 
-    self->fundamental.val = (uint32_t)rampsmooth_processExponential(&self->fundamental.rampsmooth, 0.999, self->adcBuf[0]);
-    self->fineTune.val = (uint32_t)rampsmooth_processExponential(&self->fineTune.rampsmooth, 0.999, self->adcBuf[1]);
+    self->fundamental.val = (uint32_t)fbsmooth_process(&self->fundamental.fbsmooth, 0.999, self->adcBuf[0]);
 
-    // rampsmooth_appendSample(&self->fundamental.rampsmooth, self->adcBuf[0]);
-    // rampsmooth_appendSample(&self->fineTune.rampsmooth, self->adcBuf[1]);
+    // CHANGE MUX PIN
+    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_SET);
+
+    // TWO PROBLEMS: Click noises from LUTs, MUX doesn't like the DMA
+
+    self->fineTune.val = (uint32_t)fbsmooth_process(&self->fineTune.fbsmooth, 0.999, self->adcBuf[0]);
+
+    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_RESET);
 }

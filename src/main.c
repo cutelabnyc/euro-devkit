@@ -127,8 +127,6 @@ void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s)
 {
     UNUSED(hi2s);
     txFullComplete = 1;
-    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_SET);
-    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_RESET);
 }
 
 void HAL_I2S_RxCpltCallback(I2S_HandleTypeDef *hi2s)
@@ -141,8 +139,6 @@ void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
 {
     UNUSED(hi2s);
     txHalfComplete = 1;
-    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_SET);
-    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_RESET);
 }
 
 void HAL_I2S_RxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
@@ -487,6 +483,7 @@ static void MX_GPIO_Init(void)
     __HAL_RCC_GPIOG_CLK_ENABLE();
 
     /*Configure GPIO pin Output Level */
+    /* USED FOR THE MULTIPLEXER */
     HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6, GPIO_PIN_RESET);
 
     /*Configure GPIO pin Output Level */

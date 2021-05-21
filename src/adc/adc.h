@@ -30,7 +30,7 @@ extern "C"
     // to centralize GPIO initialization to this file
     typedef struct param {
         component_t component;
-        t_rampsmooth rampsmooth;
+        t_fbsmooth fbsmooth;
         // GPIO_InitTypeDef GPIO_InitStruct;
         uint32_t val;
     } param_t;
