@@ -41,7 +41,7 @@ extern "C"
         // NOTE: ADC elements are initialized in the order 
         // in which they are initialized in MX_ADC_Init()
         uint32_t adcBuf[EURORACK_NUM_PARAMS];
-
+        uint8_t muxSelect;
         param_t fundamental;
         param_t fineTune;
         param_t diffractionConstant;

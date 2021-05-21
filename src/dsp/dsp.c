@@ -55,9 +55,6 @@ void DSP_processBlock(dsp_t *self, adc_t *adc, bool isHalfCallback)
         int lval = 0;
         int rval = 0;
 
-        // Convert to 32bit int range
-        // const float factor = (RAND_MAX / 2);
-
         lval = UX_processLeftBank(&(self->uexkull), gainArray);
         rval = UX_processRightBank(&(self->uexkull), gainArray);
 

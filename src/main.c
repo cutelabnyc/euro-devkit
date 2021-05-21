@@ -330,7 +330,7 @@ static void MX_TIM6_Init(void)
     }
 
     sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
-    // sMasterConfig.MasterOutputTrigger2 = TIM_TRGO2_RESET;
+    sMasterConfig.MasterOutputTrigger2 = TIM_TRGO2_RESET;
     sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
     if (HAL_TIMEx_MasterConfigSynchronization(&htim_adc1, &sMasterConfig) != HAL_OK)
     {
