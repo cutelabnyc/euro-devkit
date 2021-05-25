@@ -6,53 +6,43 @@ extern "C"
 {
 #endif
 
-#define EURORACK_NUM_PARAMS 4
 #define ADC_BUFFER_LENGTH 2
 #define ADC_BIT_DEPTH 4096.0f
 
 #include "stm32f7xx_hal.h"
+#include "globals.h"
 #include <cuteop.h>
 
-    // TODO: This could be for a future API in which
-    // the type of val in param_t could be solely based
-    // on which component is used in any given module's
-    // hardware, instead of everything being uint16_t
-    typedef enum component {
-        POTENTIOMETER_10K,
-        POTENTIOMETER_50K,
-        SWITCH,
-        LED,
-        INLET
-    } component_t;
+    uint32_t dma_buf[NUM_UX_ADC_PARAMS];
 
-    // TODO: GPIO values are currently initialized in
-    // stm32f7xx_hal_msp.c, but it would be more efficient
-    // to centralize GPIO initialization to this file
-    typedef struct param {
-        component_t component;
+    typedef struct adc_param {
+        uint8_t id;
         t_fbsmooth fbsmooth;
-        // GPIO_InitTypeDef GPIO_InitStruct;
         uint32_t val;
-    } param_t;
+    } adc_param_t;
+
+    typedef struct gpio_param {
+        uint8_t id;
+        bool val;
+    } gpio_param_t;
+
+    /* TODO: Implement LED Params struct */
+
+    typedef struct mux_param {
+        uint8_t sel;
+        adc_param_t params[NUM_UX_MUX_PARAMS];
+    } mux_param_t;
 
     typedef struct adc {
         ADC_HandleTypeDef *hadc;
 
-        // NOTE: ADC elements are initialized in the order 
-        // in which they are initialized in MX_ADC_Init()
-        uint32_t adcBuf[EURORACK_NUM_PARAMS];
-        uint8_t muxSelect;
-        param_t fundamental;
-        param_t fineTune;
-        param_t diffractionConstant;
-        param_t numOsc;
-        // param_t logLin;
-        // param_t waveform;
-        // param_t lfoFreq;
-        // param_t lfoPhaseOffset
-        // param_t lfoFreqOffset
+        adc_param_t adc_params[NUM_UX_ADC_PARAMS];
+        gpio_param_t gpio_params[NUM_UX_GPIO_PARAMS];
+        // led_param_t led_params[NUM_UX_LED_PARAMS];
+        mux_param_t mux;
 
     } adc_t;
+
 
     void ADC_init(adc_t *self, ADC_HandleTypeDef *adcx);
     void ADC_processBlock(adc_t *self);

@@ -6,10 +6,10 @@ void DSP_init(dsp_t *self)
     UX_init(&(self->uexkull), SAMPLE_RATE);
 }
 
-static void DSP_processParams(dsp_t *self, adc_t *adc)
+static void _DSP_processParams(dsp_t *self, adc_t *adc)
 {
-    float fundamental = ((float)adc->fundamental.val / ADC_BIT_DEPTH);
-    float fine = ((float)adc->fineTune.val / ADC_BIT_DEPTH);
+    float fundamental = ((float)adc->adc_params[FUNDAMENTAL_POT].val / ADC_BIT_DEPTH);
+    float fine = ((float)adc->mux.params[FUNDAMENTAL_FINE_ATTENUVERTER].val / ADC_BIT_DEPTH);
 
     fundamental = (pow(fundamental, 2) * 15000.0f);
     fine = pow(fine, 2) * ((float)log(fundamental) * 50.0f);
@@ -17,13 +17,13 @@ static void DSP_processParams(dsp_t *self, adc_t *adc)
 
     UX_calculateFrequencySeries(&self->uexkull,
         fundamental,
-        adc->diffractionConstant.val,
+        adc->adc_params[DIFFRACTION_POT_1].val,
         0
     );
 
     UX_calculateFrequencySeries(&self->uexkull,
         fundamental,
-        adc->diffractionConstant.val,
+        adc->adc_params[DIFFRACTION_POT_2].val,
         1
     );
 }
@@ -33,18 +33,18 @@ void DSP_processBlock(dsp_t *self, adc_t *adc, bool isHalfCallback)
     int startBuf = isHalfCallback * BUF_SAMPLES / 2;
     int endBuf = startBuf + BUF_SAMPLES / 2;
 
-    DSP_processParams(self, adc);
+    _DSP_processParams(self, adc);
 
     float gainArray[NUM_OSC];
 
     for (int i = 0; i < NUM_OSC; i++)
     {
-        if (i < adc->numOsc.val - 1){
-            gainArray[i] = 1.0f;
+        if (i < adc->adc_params[NUM_OSC_POT].val - 1){
+            gainArray[i] = 0.3f;
         }
-        else if (i < adc->numOsc.val && i + 1 > adc->numOsc.val) {
-            gainArray[i] = 1.0f - adc->numOsc.val;
-        }
+        // else if (i < adc->adc_params[NUM_OSC_POT].val && i + 1 > adc->adc_params[NUM_OSC_POT].val) {
+            // gainArray[i] = 1.0f - adc->adc_params[NUM_OSC_POT].val;
+        // }
         else {
             gainArray[i] = 0.0f;
         }
