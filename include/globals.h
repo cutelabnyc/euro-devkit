@@ -9,40 +9,48 @@ extern "C"
 #define NUM_UX_ADC_PARAMS 15
 #define NUM_UX_GPIO_PARAMS 2
 #define NUM_UX_MUX_PARAMS 8
+#define NUM_UX_MUXS 2
 #define NUM_UX_LED_PARAMS 10
 
 #include <cuteop.h>
 
     const enum  {
-        MUX_IN,
-        FUNDAMENTAL_POT,
+        MUX_IN_ATTENUVERTERS,
         FUNDAMENTAL_INPUT,
-        DIFFRACTION_POT_1,
-        DIFFRACTION_POT_2,
-        WAVEFORM_POT,
         WAVEFORM_INPUT,
-        NUM_OSC_POT,
+        MUX_IN_POTS,
         NUM_OSC_INPUT,
-        LFO_FREQ_POT,
         LFO_FREQ_INPUT,
-        LFO_PHASE_POT,
         LFO_PHASE_INPUT,
-        LFO_AMP_POT,
-        LFO_AMP_INPUT
+        LFO_AMP_INPUT,
     } UX_ADC_IDs;
 
-    // const enum {
-    //     PA0,
-    //     PA1,
-    //     PA2,
-    //     PA3,
-    //     ...
-    // } UX_PIN_IDs;
+    const enum {
+        PA0,
+        PA1,
+        PA2,
+        PA3,
+        PA5,
+        PA6,
+        PA7,
+        PB0,
+        PB1,
+        PC0,
+        PC1,
+        PC2,
+        PC4,
+        PC5
+    } UX_PIN_IDs;
 
     const enum  {
         FUNDAMENTAL_LINLOG_SWITCH,
         SPARSE_DENSE_SWITCH
     } UX_GPIO_IDs;
+
+    const enum {
+        UX_ATTENUVERTER_MUX,
+        UX_POT_MUX,
+    } UX_MUX_IDs;
 
     const enum {
         FUNDAMENTAL_FINE_ATTENUVERTER,
@@ -53,7 +61,18 @@ extern "C"
         LFO_FREQ_ATTENUVERTER,
         LFO_PHASE_ATTENUVERTER,
         LFO_AMP_ATTENUVERTER
-    } UX_MUX_IDs;
+    } UX_ATTEN_MUX_IDs;
+
+    const enum {
+        FUNDAMENTAL_POT,
+        DIFFRACTION_POT_1,
+        DIFFRACTION_POT_2,
+        WAVEFORM_POT,
+        NUM_OSC_POT,
+        LFO_FREQ_POT,
+        LFO_PHASE_POT,
+        LFO_AMP_POT,
+    } UX_POT_MUX_IDs;
 
     const enum {
         FUNDAMENTAL_LED,

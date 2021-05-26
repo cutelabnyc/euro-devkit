@@ -39,7 +39,7 @@ extern "C"
         adc_param_t adc_params[NUM_UX_ADC_PARAMS];
         gpio_param_t gpio_params[NUM_UX_GPIO_PARAMS];
         // led_param_t led_params[NUM_UX_LED_PARAMS];
-        mux_param_t mux;
+        mux_param_t mux[NUM_UX_MUXS];
 
     } adc_t;
 

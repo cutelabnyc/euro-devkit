@@ -39,28 +39,154 @@ void ADC_init(adc_t *self, ADC_HandleTypeDef *adcx)
         _ADC_init_gpio_param(&self->gpio_params[i], i);
     }
 
-    _ADC_init_mux_param(&self->mux);
+    for (int i = 0; i < NUM_UX_MUXS; i++)
+    {
+        _ADC_init_mux_param(&self->mux[i]);
+    }
 }
 
-// TODO: Bitmask the GPIO
-// void _ADC_incrementMuxPins(adc_t *self){
-//     if (self->muxSelect){
-//         HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_RESET);
-//         HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_RESET);
-//         HAL_GPIO_WritePin(GPIOE, GPIO_PIN_5, GPIO_PIN_RESET);
-//         HAL_GPIO_WritePin(GPIOE, GPIO_PIN_6, GPIO_PIN_RESET);
+void _ADC_incrementMux(adc_t *self){
 
-//         self->muxSelect = 0;
-//     }
-//     else {
-//         HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_RESET);
-//         HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, GPIO_PIN_SET);
-//         HAL_GPIO_WritePin(GPIOE, GPIO_PIN_5, GPIO_PIN_RESET);
-//         HAL_GPIO_WritePin(GPIOE, GPIO_PIN_6, GPIO_PIN_RESET);
+    for (int i = 0; i < NUM_UX_MUXS; i++)
+    {
+        if (self->mux[i].sel == 7)
+        {
+            self->mux[i].sel = 0;
+        }
+        else {
+            self->mux[i].sel++;
+        }
 
-//         self->muxSelect = 1;
+        HAL_GPIO_WritePin(GPIOE, GPIO_PIN_4, self->mux[i].sel & 0x1);
+        HAL_GPIO_WritePin(GPIOE, GPIO_PIN_5, (self->mux[i].sel >> 1) & 0x1);
+        HAL_GPIO_WritePin(GPIOE, GPIO_PIN_6, (self->mux[i].sel >> 2) & 0x1);
+    }
+}
+
+// adc_param_t *_ADC_processAttenuverterMux(mux_param_t *self)
+// {
+//     // First set the ADC param equal to the current mux
+//     // value from the DMA buffer
+//     adc_param_t param = self->params[self->sel];
+//     param.val = dma_buf[MUX_IN_ATTENUVERTERS];
+
+//     // Then, go one by one to process individual values and beautify
+//     // them: e.g. filtering, denoising, scaling
+//     switch (self->sel)
+//     {
+//     case (FUNDAMENTAL_FINE_ATTENUVERTER):
+//         param.val =
+//     case (WAVEFORM_ATTENUVERTER):
+//     case (NUM_OSC_ATTENUVERTER):
+//     case (FM_ATTENUVERTER_1):
+//     case (FM_ATTENUVERTER_2):
+//     case (LFO_FREQ_ATTENUVERTER):
+//     case (LFO_PHASE_ATTENUVERTER):
+//     case (LFO_AMP_ATTENUVERTER):
+//     default:
+//         break;
 //     }
+
+//     return param;
 // }
+
+// adc_param_t *_ADC_processLEDs(mux_param_t *self)
+// {
+//     // First set the ADC param equal to the current mux
+//     // value from the DMA buffer
+//     adc_param_t param = self->params[self->sel];
+//     param.val = dma_buf[MUX_IN_ATTENUVERTERS];
+
+//     // Then, go one by one to process individual values and beautify
+//     // them: e.g. filtering, denoising, scaling
+//     switch (self->sel)
+//     {
+//     case (FUNDAMENTAL_FINE_ATTENUVERTER):
+//         param.val =
+//     case (WAVEFORM_ATTENUVERTER):
+//     case (NUM_OSC_ATTENUVERTER):
+//     case (FM_ATTENUVERTER_1):
+//     case (FM_ATTENUVERTER_2):
+//     case (LFO_FREQ_ATTENUVERTER):
+//     case (LFO_PHASE_ATTENUVERTER):
+//     case (LFO_AMP_ATTENUVERTER):
+//     default:
+//         break;
+//     }
+
+//     return param;
+// }
+
+adc_param_t _ADC_processPotMux(mux_param_t *self)
+{
+    // First set the ADC param equal to the current mux
+    // value from the DMA buffer
+    adc_param_t *param = &self->params[self->sel];
+    param->val = dma_buf[MUX_IN_POTS];
+
+    // Then, go one by one to process individual values and beautify
+    // them: e.g. filtering, denoising, scaling
+    switch (self->sel)
+    {
+    case (FUNDAMENTAL_POT):
+        param->val = (uint32_t)fbsmooth_process(&param->fbsmooth, 0.999, param->val);
+        break;
+    case (DIFFRACTION_POT_1):
+        param->val = ((float)param->val / ADC_BIT_DEPTH) * 5;
+        break;
+    case (DIFFRACTION_POT_2):
+        break;
+    case (WAVEFORM_POT):
+        break;
+    case (NUM_OSC_POT):
+        break;
+    case (LFO_FREQ_POT):
+        break;
+    case (LFO_PHASE_POT):
+        break;
+    case (LFO_AMP_POT):
+        break;
+    default:
+        break;
+    }
+
+    return *param;
+}
+
+adc_param_t _ADC_processADCValue(adc_param_t *self, uint8_t id)
+{
+    // First set the ADC param equal to the current mux
+    // value from the DMA buffer
+    adc_param_t *param = self;
+
+    if (id != MUX_IN_ATTENUVERTERS || id != MUX_IN_POTS)
+    {
+        switch (id)
+        {
+        case(FUNDAMENTAL_INPUT):
+            self->val =
+                (uint32_t)fbsmooth_process(&self->fbsmooth,
+                    0.999,
+                    dma_buf[FUNDAMENTAL_INPUT]
+                );
+            break;
+        case(WAVEFORM_INPUT):
+            break;
+        case(NUM_OSC_INPUT):
+            break;
+        case(LFO_FREQ_INPUT):
+            break;
+        case(LFO_PHASE_INPUT):
+            break;
+        case(LFO_AMP_INPUT):
+            break;
+        default:
+            break;
+        }
+    }
+
+    return *param;
+}
 
 /**
  * Converts values from the raw dma_buf data to
@@ -70,21 +196,15 @@ void ADC_init(adc_t *self, ADC_HandleTypeDef *adcx)
  */
 void ADC_processBlock(adc_t *self)
 {
-
-    // Switch statement for beautifying whichever mux parameter is selected
-    // if (self->muxSelect){
-    //     self->fundamental.val = (uint32_t)fbsmooth_process(&self->fundamental.fbsmooth, 0.999, self->dma_buf[0]);
+    // self->adc_params[MUX_IN_ATTENUVERTERS] = _ADC_processAttenuverterMux(&self->mux[UX_ATTENUVERTER_MUX]);
+    self->adc_params[MUX_IN_POTS] = _ADC_processPotMux(&self->mux[UX_POT_MUX]);
+    // LED Version of process
+    // for (int i = 0; i < NUM_UX_ADC_PARAMS; i++)
+    // {
+    //     self->adc_params[i] = _ADC_processADCValue(&self->adc_params[i], i);
     // }
-    // else {
-    //     self->fineTune.val = (uint32_t)fbsmooth_process(&self->fineTune.fbsmooth, 0.999, self->dma_buf[0]);
-    // }
 
-    // Beautify the remaining parameters
-    self->adc_params[FUNDAMENTAL_POT].val = (uint32_t)fbsmooth_process(&self->adc_params[FUNDAMENTAL_POT].fbsmooth, 0.999, dma_buf[FUNDAMENTAL_POT]);
-    // self->fineTune.val = (uint32_t)fbsmooth_process(&self->fineTune.fbsmooth, 0.999, self->dma_buf[0]);
-    self->adc_params[DIFFRACTION_POT_1].val = ((float)dma_buf[DIFFRACTION_POT_1] / ADC_BIT_DEPTH) * 5;
-    self->adc_params[NUM_OSC_POT].val = ((float)dma_buf[NUM_OSC_POT] / ADC_BIT_DEPTH) * NUM_OSC;
 
     // Increment the mux select
-    // _ADC_incrementMux(&self);
+    _ADC_incrementMux(self);
 }

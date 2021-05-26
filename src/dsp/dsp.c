@@ -8,22 +8,22 @@ void DSP_init(dsp_t *self)
 
 static void _DSP_processParams(dsp_t *self, adc_t *adc)
 {
-    float fundamental = ((float)adc->adc_params[FUNDAMENTAL_POT].val / ADC_BIT_DEPTH);
-    float fine = ((float)adc->mux.params[FUNDAMENTAL_FINE_ATTENUVERTER].val / ADC_BIT_DEPTH);
+    float fundamental = ((float)adc->mux[UX_POT_MUX].params[FUNDAMENTAL_POT].val / ADC_BIT_DEPTH);
+    // float fine = ((float)adc->mux[0].params[FUNDAMENTAL_FINE_ATTENUVERTER].val / ADC_BIT_DEPTH);
 
     fundamental = (pow(fundamental, 2) * 15000.0f);
-    fine = pow(fine, 2) * ((float)log(fundamental) * 50.0f);
-    fundamental += fine;
+    // fine = pow(fine, 2) * ((float)log(fundamental) * 50.0f);
+    // fundamental += fine;
 
     UX_calculateFrequencySeries(&self->uexkull,
         fundamental,
-        adc->adc_params[DIFFRACTION_POT_1].val,
+        adc->mux[UX_POT_MUX].params[DIFFRACTION_POT_1].val,
         0
     );
 
     UX_calculateFrequencySeries(&self->uexkull,
         fundamental,
-        adc->adc_params[DIFFRACTION_POT_2].val,
+        adc->mux[UX_POT_MUX].params[DIFFRACTION_POT_1].val,
         1
     );
 }
