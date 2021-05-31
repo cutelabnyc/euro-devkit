@@ -34,6 +34,7 @@ extern "C"
         PB1,
         PC0,
         PC2,
+        // add one more pin!
     } UX_PIN_IDs;
 
     const enum  {

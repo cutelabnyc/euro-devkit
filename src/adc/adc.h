@@ -6,7 +6,7 @@ extern "C"
 {
 #endif
 
-#define ADC_BUFFER_LENGTH 2
+#define FILTER_BUFFER_LENGTH 2
 #define ADC_BIT_DEPTH 4096.0f
 
 #include "stm32f7xx_hal.h"
