@@ -6,19 +6,20 @@ extern "C"
 {
 #endif
 
-#define NUM_UX_ADC_PARAMS 15
+#define NUM_UX_ADC_PARAMS 8
 #define NUM_UX_GPIO_PARAMS 2
 #define NUM_UX_MUX_PARAMS 8
 #define NUM_UX_MUXS 2
+#define MUX_OFFSET NUM_UX_MUXS
 #define NUM_UX_LED_PARAMS 10
 
 #include <cuteop.h>
 
     const enum  {
+        MUX_IN_POTS,
         MUX_IN_ATTENUVERTERS,
         FUNDAMENTAL_INPUT,
         WAVEFORM_INPUT,
-        MUX_IN_POTS,
         NUM_OSC_INPUT,
         LFO_FREQ_INPUT,
         LFO_PHASE_INPUT,
@@ -26,20 +27,13 @@ extern "C"
     } UX_ADC_IDs;
 
     const enum {
-        PA0,
-        PA1,
-        PA2,
         PA3,
         PA5,
         PA6,
-        PA7,
         PB0,
         PB1,
         PC0,
-        PC1,
         PC2,
-        PC4,
-        PC5
     } UX_PIN_IDs;
 
     const enum  {

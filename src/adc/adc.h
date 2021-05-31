@@ -35,7 +35,7 @@ extern "C"
 
     typedef struct adc {
         ADC_HandleTypeDef *hadc;
-
+        uint8_t interSelector;
         adc_param_t adc_params[NUM_UX_ADC_PARAMS];
         gpio_param_t gpio_params[NUM_UX_GPIO_PARAMS];
         // led_param_t led_params[NUM_UX_LED_PARAMS];

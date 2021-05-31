@@ -9,11 +9,11 @@ void DSP_init(dsp_t *self)
 static void _DSP_processParams(dsp_t *self, adc_t *adc)
 {
     float fundamental = ((float)adc->mux[UX_POT_MUX].params[FUNDAMENTAL_POT].val / ADC_BIT_DEPTH);
-    // float fine = ((float)adc->mux[0].params[FUNDAMENTAL_FINE_ATTENUVERTER].val / ADC_BIT_DEPTH);
+    float fine = ((float)adc->mux[UX_ATTENUVERTER_MUX].params[FUNDAMENTAL_FINE_ATTENUVERTER].val / ADC_BIT_DEPTH);
 
-    fundamental = (pow(fundamental, 2) * 15000.0f);
-    // fine = pow(fine, 2) * ((float)log(fundamental) * 50.0f);
-    // fundamental += fine;
+    fundamental = ((fundamental * fundamental) * 15000.0f);
+    fine = (fine * fine) * ((float)log(fundamental) * 50.0f);
+    fundamental += fine;
 
     UX_calculateFrequencySeries(&self->uexkull,
         fundamental,
@@ -37,9 +37,10 @@ void DSP_processBlock(dsp_t *self, adc_t *adc, bool isHalfCallback)
 
     float gainArray[NUM_OSC];
 
+    // Process number of oscillators
     for (int i = 0; i < NUM_OSC; i++)
     {
-        if (i < adc->adc_params[NUM_OSC_POT].val - 1){
+        if (i < adc->mux[UX_POT_MUX].params[NUM_OSC_POT].val - 1){
             gainArray[i] = 0.3f;
         }
         // else if (i < adc->adc_params[NUM_OSC_POT].val && i + 1 > adc->adc_params[NUM_OSC_POT].val) {
