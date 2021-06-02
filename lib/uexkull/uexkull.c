@@ -27,9 +27,16 @@ void UX_init(uexkull_t *self, float samplerate)
             0.0f,
             SIN);
 
+        bank_init(&self->lfo[i],
+            NUM_OSC,
+            samplerate,
+            0.0f,
+            SIN);
+
         for (int j = 0; j < NUM_OSC; j++)
         {
             self->freqArray[i][j] = 0.0f;
+            self->lfoFreqArray[i][j] = ((float)rand() / (float)RAND_MAX) * 1.0f;
         }
         self->_diffractionConstant[i] = diffractionConstants[0];
         self->_diffractionWidth[i] = false;
@@ -59,8 +66,16 @@ void UX_calculateFrequencySeries(uexkull_t *self, float fundamental, uint8_t num
 float UX_processLeftBank(uexkull_t *self, float *gainValues)
 {
     float sig = 0;
-    bank_setFrequencies(&(self->bank[0]), self->freqArray[0], NUM_OSC);
-    sig += bank_process(&(self->bank[0]), gainValues);
+    bank_setFrequencies(&(self->bank[0]), self->freqArray[0], NUM_OSC, false);
+    bank_setFrequencies(&(self->lfo[0]), self->lfoFreqArray[0], NUM_OSC, true);
+
+    float lfoValues[NUM_OSC];
+    for (int i = 0; i < NUM_OSC; i++)
+    {
+        lfoValues[i] = osc_step(&(self->lfo[0].osc[i]), 0) / (float)UINT16_MAX;
+    }
+
+    sig += bank_process(&(self->bank[0]), lfoValues);
 
     return sig;
 }
@@ -68,8 +83,15 @@ float UX_processLeftBank(uexkull_t *self, float *gainValues)
 float UX_processRightBank(uexkull_t *self, float *gainValues)
 {
     float sig = 0;
-    bank_setFrequencies(&(self->bank[1]), self->freqArray[1], NUM_OSC);
-    sig += bank_process(&(self->bank[1]), gainValues);
+    bank_setFrequencies(&(self->bank[1]), self->freqArray[1], NUM_OSC, false);
+    bank_setFrequencies(&(self->lfo[1]), self->lfoFreqArray[1], NUM_OSC, true);
 
+    float lfoValues[NUM_OSC];
+    for (int i = 0; i < NUM_OSC; i++)
+    {
+        lfoValues[i] = osc_step(&(self->lfo[1].osc[i]), 0) / (float)UINT16_MAX;
+    }
+
+    sig += bank_process(&(self->bank[1]), lfoValues);
     return sig;
 }

@@ -11,7 +11,7 @@
 #ifndef UEXKULL_H
 #define UEXKULL_H
 
-#define NUM_OSC 10
+#define NUM_OSC 5
 #define NUM_BANKS 2
 #define MAX_FREQ 20000
 #define NUM_DIFFRACTION_CONSTANTS 5
@@ -25,10 +25,11 @@
 typedef struct uexkull
 {
     t_bank bank[NUM_BANKS];
+    t_bank lfo[NUM_BANKS];
     float freqArray[NUM_BANKS][NUM_OSC];
+    float lfoFreqArray[NUM_BANKS][NUM_OSC];
     float _diffractionConstant[NUM_BANKS];
     bool _diffractionWidth[NUM_BANKS]; //0: sparse, 1: dense
-
     float _fundamental;
 } uexkull_t;
 
