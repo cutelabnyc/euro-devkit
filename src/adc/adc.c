@@ -43,7 +43,7 @@ void ADC_init(adc_t *self, ADC_HandleTypeDef *adcx)
     }
 }
 
-void _ADC_incrementMux(adc_t *self)
+static void _ADC_incrementMux(adc_t *self)
 {
     if (self->interSelector == 7)
     {
@@ -63,7 +63,7 @@ void _ADC_incrementMux(adc_t *self)
     }
 }
 
-void _ADC_processAttenuverterMux(mux_param_t *self)
+static void _ADC_processAttenuverterMux(mux_param_t *self)
 {
 
     // First set the ADC param equal to the current mux
@@ -124,7 +124,7 @@ void _ADC_processAttenuverterMux(mux_param_t *self)
 //     return param;
 // }
 
-void _ADC_processPotMux(mux_param_t *self)
+static void _ADC_processPotMux(mux_param_t *self)
 {
     // First set the ADC param equal to the current mux
     // value from the DMA buffer
@@ -139,11 +139,13 @@ void _ADC_processPotMux(mux_param_t *self)
         param->val = (uint32_t)fbsmooth_process(&param->fbsmooth, 0.999, param->val);
         break;
     case (DIFFRACTION_POT_1):
-        param->val = ((float)param->val / ADC_BIT_DEPTH) * 5;
+        param->val = ((float)param->val / ADC_BIT_DEPTH) * NUM_DIFFRACTION_CONSTANTS;
         break;
     case (DIFFRACTION_POT_2):
+        param->val = ((float)param->val / ADC_BIT_DEPTH) * NUM_DIFFRACTION_CONSTANTS;
         break;
     case (WAVEFORM_POT):
+        param->val = ((float)param->val / ADC_BIT_DEPTH) * NUM_WAVEFORMS;
         break;
     case (NUM_OSC_POT):
         param->val = ((float)param->val / ADC_BIT_DEPTH) * NUM_OSC;
@@ -194,6 +196,12 @@ void _ADC_processPotMux(mux_param_t *self)
 //     return *param;
 // }
 
+static void _ADC_processGPIOPins(adc_t *self)
+{
+    self->gpio_params[FUNDAMENTAL_LINLOG_SWITCH].val = HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_0);
+    self->gpio_params[SPARSE_DENSE_SWITCH].val = HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_1);
+}
+
 /**
  * Converts values from the raw dma_buf data to
  * the module-specific ADC parameters through smoothening,
@@ -204,6 +212,8 @@ void ADC_processBlock(adc_t *self)
 {
     _ADC_processPotMux(&self->mux[UX_POT_MUX]);
     _ADC_processAttenuverterMux(&self->mux[UX_ATTENUVERTER_MUX]);
+    _ADC_processGPIOPins(self);
+
     // Then process LEDS...
 
     // Then process audio inlets

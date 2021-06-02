@@ -15,6 +15,7 @@
 #define NUM_BANKS 2
 #define MAX_FREQ 20000
 #define NUM_DIFFRACTION_CONSTANTS 5
+#define NUM_WAVEFORMS 4
 
 #include <cuteop.h>
 
@@ -24,7 +25,6 @@
 typedef struct uexkull
 {
     t_bank bank[NUM_BANKS];
-    // t_series series;
     float freqArray[NUM_BANKS][NUM_OSC];
     float _diffractionConstant[NUM_BANKS];
     bool _diffractionWidth[NUM_BANKS]; //0: sparse, 1: dense
@@ -51,8 +51,6 @@ void UX_init(uexkull_t *self, float samplerate);
 
 /**
  * Frees the 'uexkull' struct
- *
- * TODO: Add and describe parameters
  */
 void UX_destroy(uexkull_t *self);
 
@@ -62,11 +60,14 @@ void UX_destroy(uexkull_t *self);
 void UX_calculateFrequencySeries(uexkull_t *self, float fundamental, uint8_t numConstant, uint8_t numBank);
 
 /**
+ * Set waveform on both banks
+ */
+void UX_setWaveform(uexkull_t *self, waveform_t waveform);
+
+/**
  * Processes a single sample in the module's IO. The process
  * function acts as a bridge between the Daisy's DSP library
  * and Cute-Op's mathematical sequence generating module.
- *
- * TODO: Add and describe parameters
  */
 float UX_processLeftBank(uexkull_t *self, float *gainValues);
 float UX_processRightBank(uexkull_t *self, float *gainValues);

@@ -19,7 +19,6 @@ static void _UX_diffractionSeries(float *vector, uint16_t numElements, float dif
 
 void UX_init(uexkull_t *self, float samplerate)
 {
-    // TODO: Initialization should read GPIOs on start up, obviously
     for (int i = 0; i < NUM_BANKS; i++)
     {
         bank_init(&self->bank[i],
@@ -38,15 +37,14 @@ void UX_init(uexkull_t *self, float samplerate)
 
     self->_fundamental = 0;
 
-    // TODO: Use series class from Cute-Op
-    // series_init(
-    //     &self->series,
-    //     NUM_OSC,
-    //     _UX_diffractionSeries
-    // );
+}
 
-    // series_process(&self->series, self->_fundamental, &self->_diffractionConstant);
-
+void UX_setWaveform(uexkull_t *self, waveform_t waveform)
+{
+    for (int i = 0; i < NUM_BANKS; i++)
+    {
+        bank_setWaveform(&self->bank[i], waveform);
+    }
 }
 
 void UX_calculateFrequencySeries(uexkull_t *self, float fundamental, uint8_t numConstant, uint8_t numBank)
@@ -56,10 +54,6 @@ void UX_calculateFrequencySeries(uexkull_t *self, float fundamental, uint8_t num
     self->_diffractionConstant[numBank] = diffractionConstants[numConstant];
     self->freqArray[numBank][0] = fundamental;
     _UX_diffractionSeries(self->freqArray[numBank], NUM_OSC, self->_diffractionConstant[numBank]);
-
-
-    // TODO: Use the series class from Cute-Op
-    // series_process(&self->series, self->_fundamental, 1, &self->_diffractionConstant);
 }
 
 float UX_processLeftBank(uexkull_t *self, float *gainValues)

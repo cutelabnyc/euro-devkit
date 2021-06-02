@@ -15,6 +15,8 @@ static void _DSP_processParams(dsp_t *self, adc_t *adc)
     fine = (fine * fine) * ((float)log(fundamental) * 50.0f);
     fundamental += fine;
 
+    UX_setWaveform(&self->uexkull, adc->mux[UX_POT_MUX].params[WAVEFORM_POT].val);
+
     UX_calculateFrequencySeries(&self->uexkull,
         fundamental,
         adc->mux[UX_POT_MUX].params[DIFFRACTION_POT_1].val,
@@ -23,7 +25,7 @@ static void _DSP_processParams(dsp_t *self, adc_t *adc)
 
     UX_calculateFrequencySeries(&self->uexkull,
         fundamental,
-        adc->mux[UX_POT_MUX].params[DIFFRACTION_POT_1].val,
+        adc->mux[UX_POT_MUX].params[DIFFRACTION_POT_2].val,
         1
     );
 }
@@ -41,7 +43,7 @@ void DSP_processBlock(dsp_t *self, adc_t *adc, bool isHalfCallback)
     for (int i = 0; i < NUM_OSC; i++)
     {
         if (i < adc->mux[UX_POT_MUX].params[NUM_OSC_POT].val - 1){
-            gainArray[i] = 0.3f;
+            gainArray[i] = 1.0f;
         }
         // else if (i < adc->adc_params[NUM_OSC_POT].val && i + 1 > adc->adc_params[NUM_OSC_POT].val) {
             // gainArray[i] = 1.0f - adc->adc_params[NUM_OSC_POT].val;
@@ -59,8 +61,8 @@ void DSP_processBlock(dsp_t *self, adc_t *adc, bool isHalfCallback)
         lval = UX_processLeftBank(&(self->uexkull), gainArray);
         rval = UX_processRightBank(&(self->uexkull), gainArray);
 
-        lval <<= 16;
-        rval <<= 16;
+        lval <<= 15;
+        rval <<= 15;
 
         self->txBuf[pos] = (lval >> 16) & 0xFFFF;
         self->txBuf[pos + 1] = lval & 0xFFFF;
