@@ -87,12 +87,7 @@ void UX_calculateLFOFrequencies(uexkull_t *self, float lfoFreq, float phaseOffse
     self->_lfoAmp = amplitudeOffset;
 }
 
-void UX_setNumOscillators(uexkull_t *self, uint16_t gainCurve)
-{
-
-}
-
-float UX_processLeftBank(uexkull_t *self)
+float UX_processLeftBank(uexkull_t *self, float *gainCurve)
 {
     float sig = 0;
     bank_setFrequencies(&(self->bank[0]), self->freqArray[0], NUM_OSC, false);
@@ -104,12 +99,12 @@ float UX_processLeftBank(uexkull_t *self)
         lfoValues[i] = osc_step(&(self->lfo[0].osc[i]), 0) / (float)UINT16_MAX;
     }
 
-    sig += bank_process(&(self->bank[0]), lfoValues);
+    sig += bank_process(&(self->bank[0]), lfoValues, gainCurve);
 
     return sig;
 }
 
-float UX_processRightBank(uexkull_t *self)
+float UX_processRightBank(uexkull_t *self, float *gainCurve)
 {
     float sig = 0;
     bank_setFrequencies(&(self->bank[1]), self->freqArray[1], NUM_OSC, false);
@@ -121,6 +116,6 @@ float UX_processRightBank(uexkull_t *self)
         lfoValues[i] = osc_step(&(self->lfo[1].osc[i]), 0) / (float)UINT16_MAX;
     }
 
-    sig += bank_process(&(self->bank[1]), lfoValues);
+    sig += bank_process(&(self->bank[1]), lfoValues, gainCurve);
     return sig;
 }

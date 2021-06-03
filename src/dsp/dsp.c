@@ -27,6 +27,7 @@ static void _DSP_processParams(dsp_t *self, adc_t *adc)
     fundamental += fine;
 
     UX_setWaveform(&self->uexkull, adc->mux[UX_POT_MUX].params[WAVEFORM_POT].val);
+    UX_calculateLFOFrequencies(&self->uexkull, lfoFreq, lfoPhase, lfoAmp);
 
     UX_calculateFrequencySeries(&self->uexkull,
         fundamental,
@@ -41,9 +42,6 @@ static void _DSP_processParams(dsp_t *self, adc_t *adc)
         1,
         adc->gpio_params[SPARSE_DENSE_SWITCH].val
     );
-
-    UX_calculateLFOFrequencies(&self->uexkull, lfoFreq, lfoPhase, lfoAmp);
-    // UX_setNumOscillators(&self->uexkull, adc->mux[UX_POT_MUX].params[NUM_OSC_POT].val);
 }
 
 void DSP_processBlock(dsp_t *self, adc_t *adc, bool isHalfCallback)
@@ -53,13 +51,21 @@ void DSP_processBlock(dsp_t *self, adc_t *adc, bool isHalfCallback)
 
     _DSP_processParams(self, adc);
 
+    float gainCurve[NUM_OSC];
+
+    for (int i = 0; i < NUM_OSC; i++)
+    {
+        // TODO: Smoothen/Log out these values as a curve for number of oscillators
+        gainCurve[i] = ((float)adc->mux[UX_POT_MUX].params[NUM_OSC_POT].val / ADC_BIT_DEPTH);
+    }
+
     for (int pos = startBuf; pos < endBuf; pos += 4)
     {
         int lval = 0;
         int rval = 0;
 
-        lval = UX_processLeftBank(&(self->uexkull));
-        rval = UX_processRightBank(&(self->uexkull));
+        lval = UX_processLeftBank(&(self->uexkull), gainCurve);
+        rval = UX_processRightBank(&(self->uexkull), gainCurve);
 
         lval <<= 15;
         rval <<= 15;

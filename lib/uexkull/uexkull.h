@@ -74,11 +74,6 @@ void UX_calculateFrequencySeries(uexkull_t *self, float fundamental, uint8_t num
 void UX_calculateLFOFrequencies(uexkull_t *self, float lfoFreq, float phaseOffset, float amplitudeOffset);
 
 /**
- * Sets the gain values according to number of oscillators
- */
-void UX_setNumOscillators(uexkull_t *self, uint16_t gainCurve);
-
-/**
  * Set waveform on both banks
  */
 void UX_setWaveform(uexkull_t *self, waveform_t waveform);
@@ -88,8 +83,8 @@ void UX_setWaveform(uexkull_t *self, waveform_t waveform);
  * function acts as a bridge between the Daisy's DSP library
  * and Cute-Op's mathematical sequence generating module.
  */
-float UX_processLeftBank(uexkull_t *self);
-float UX_processRightBank(uexkull_t *self);
+float UX_processLeftBank(uexkull_t *self, float *gainCurve);
+float UX_processRightBank(uexkull_t *self, float *gainCurve);
 
 
 #endif /* OPPORTUNITY_H */

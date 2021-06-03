@@ -63,6 +63,11 @@ static void _ADC_incrementMux(adc_t *self)
     }
 }
 
+// NOTE: It would be super usefull in the future to do all of
+// your smoothening and processing of values from hardware here
+// and allow the data returned to be of a mutable type so that 
+// values can play directly into the DSP routine without type casting!
+// Also maybe write some sort of interface for this function 
 static void _ADC_processAttenuverterMux(mux_param_t *self)
 {
 
@@ -124,6 +129,11 @@ static void _ADC_processAttenuverterMux(mux_param_t *self)
 //     return param;
 // }
 
+// NOTE: It would be super usefull in the future to do all of
+// your smoothening and processing of values from hardware here
+// and allow the data returned to be of a mutable type so that 
+// values can play directly into the DSP routine without type casting!
+// Also maybe write some sort of interface for this function 
 static void _ADC_processPotMux(mux_param_t *self)
 {
     // First set the ADC param equal to the current mux
@@ -148,7 +158,7 @@ static void _ADC_processPotMux(mux_param_t *self)
         param->val = ((float)param->val / ADC_BIT_DEPTH) * NUM_WAVEFORMS;
         break;
     case (NUM_OSC_POT):
-        param->val = ((float)param->val / ADC_BIT_DEPTH) * NUM_OSC;
+        param->val = (uint32_t)fbsmooth_process(&param->fbsmooth, 0.999, param->val);
         break;
     case (LFO_FREQ_POT):
         param->val = (uint32_t)fbsmooth_process(&param->fbsmooth, 0.999, param->val);
