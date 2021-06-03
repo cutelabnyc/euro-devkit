@@ -11,9 +11,9 @@
 #ifndef UEXKULL_H
 #define UEXKULL_H
 
-#define NUM_OSC 5
+#define NUM_OSC 3
 #define NUM_BANKS 2
-#define MAX_FREQ 20000
+#define MAX_FREQ (SAMPLE_RATE / 2)
 #define NUM_DIFFRACTION_CONSTANTS 5
 #define NUM_WAVEFORMS 4
 
@@ -32,6 +32,20 @@ typedef struct uexkull
     bool _diffractionWidth[NUM_BANKS]; //0: sparse, 1: dense
     float _fundamental;
 } uexkull_t;
+
+static const float randomOffsets[NUM_OSC] = {
+    0.01,
+    0.2,
+    0.53,
+    // 0.48,
+    // 0.89,
+    // 0.91,
+    // 0.087,
+    // 0.77,
+    // 0.331,
+    // 0.04,
+    // 0.14
+};
 
 /**
  * Constants for diffraction series calculation
@@ -61,6 +75,16 @@ void UX_destroy(uexkull_t *self);
 void UX_calculateFrequencySeries(uexkull_t *self, float fundamental, uint8_t numConstant, uint8_t numBank);
 
 /**
+ * Calculates the LFO bank based on LFO params
+ */
+void UX_calculateLFOFrequencies(uexkull_t *self, float lfoFreq, float phaseOffset, float amplitudeOffset);
+
+/**
+ * Sets the gain values according to number of oscillators
+ */
+void UX_setNumOscillators(uexkull_t *self, uint16_t gainCurve);
+
+/**
  * Set waveform on both banks
  */
 void UX_setWaveform(uexkull_t *self, waveform_t waveform);
@@ -70,8 +94,8 @@ void UX_setWaveform(uexkull_t *self, waveform_t waveform);
  * function acts as a bridge between the Daisy's DSP library
  * and Cute-Op's mathematical sequence generating module.
  */
-float UX_processLeftBank(uexkull_t *self, float *gainValues);
-float UX_processRightBank(uexkull_t *self, float *gainValues);
+float UX_processLeftBank(uexkull_t *self);
+float UX_processRightBank(uexkull_t *self);
 
 
 #endif /* OPPORTUNITY_H */

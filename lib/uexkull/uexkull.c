@@ -36,14 +36,12 @@ void UX_init(uexkull_t *self, float samplerate)
         for (int j = 0; j < NUM_OSC; j++)
         {
             self->freqArray[i][j] = 0.0f;
-            self->lfoFreqArray[i][j] = ((float)rand() / (float)RAND_MAX) * 1.0f;
+            self->lfoFreqArray[i][j] = 0.0f;
         }
         self->_diffractionConstant[i] = diffractionConstants[0];
         self->_diffractionWidth[i] = false;
     }
-
     self->_fundamental = 0;
-
 }
 
 void UX_setWaveform(uexkull_t *self, waveform_t waveform)
@@ -63,7 +61,29 @@ void UX_calculateFrequencySeries(uexkull_t *self, float fundamental, uint8_t num
     _UX_diffractionSeries(self->freqArray[numBank], NUM_OSC, self->_diffractionConstant[numBank]);
 }
 
-float UX_processLeftBank(uexkull_t *self, float *gainValues)
+void UX_calculateLFOFrequencies(uexkull_t *self, float lfoFreq, float phaseOffset, float amplitudeOffset)
+{
+    for (int i = 0;i < NUM_BANKS; i++)
+    {
+        for (int j = 0; j < NUM_OSC; j++)
+        {
+            if (lfoFreq < 0.1f)
+            {
+                self->lfoFreqArray[i][j] = 0 + ((randomOffsets[j] * phaseOffset));
+            }
+            else {
+                self->lfoFreqArray[i][j] = lfoFreq + ((randomOffsets[j] * phaseOffset));
+            }
+        }
+    }
+}
+
+void UX_setNumOscillators(uexkull_t *self, uint16_t gainCurve)
+{
+
+}
+
+float UX_processLeftBank(uexkull_t *self)
 {
     float sig = 0;
     bank_setFrequencies(&(self->bank[0]), self->freqArray[0], NUM_OSC, false);
@@ -80,7 +100,7 @@ float UX_processLeftBank(uexkull_t *self, float *gainValues)
     return sig;
 }
 
-float UX_processRightBank(uexkull_t *self, float *gainValues)
+float UX_processRightBank(uexkull_t *self)
 {
     float sig = 0;
     bank_setFrequencies(&(self->bank[1]), self->freqArray[1], NUM_OSC, false);

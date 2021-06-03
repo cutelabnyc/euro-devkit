@@ -28,6 +28,13 @@ static void _DSP_processParams(dsp_t *self, adc_t *adc)
         adc->mux[UX_POT_MUX].params[DIFFRACTION_POT_2].val,
         1
     );
+
+    UX_calculateLFOFrequencies(&self->uexkull,
+        adc->mux[UX_POT_MUX].params[LFO_FREQ_POT].val,
+        adc->mux[UX_POT_MUX].params[LFO_PHASE_POT].val,
+        adc->mux[UX_POT_MUX].params[LFO_AMP_POT].val
+    );
+    // UX_setNumOscillators(&self->uexkull, adc->mux[UX_POT_MUX].params[NUM_OSC_POT].val);
 }
 
 void DSP_processBlock(dsp_t *self, adc_t *adc, bool isHalfCallback)
@@ -37,29 +44,13 @@ void DSP_processBlock(dsp_t *self, adc_t *adc, bool isHalfCallback)
 
     _DSP_processParams(self, adc);
 
-    float gainArray[NUM_OSC];
-
-    // Process number of oscillators
-    for (int i = 0; i < NUM_OSC; i++)
-    {
-        if (i < adc->mux[UX_POT_MUX].params[NUM_OSC_POT].val - 1){
-            gainArray[i] = 1.0f;
-        }
-        // else if (i < adc->adc_params[NUM_OSC_POT].val && i + 1 > adc->adc_params[NUM_OSC_POT].val) {
-            // gainArray[i] = 1.0f - adc->adc_params[NUM_OSC_POT].val;
-        // }
-        else {
-            gainArray[i] = 0.0f;
-        }
-    }
-
     for (int pos = startBuf; pos < endBuf; pos += 4)
     {
         int lval = 0;
         int rval = 0;
 
-        lval = UX_processLeftBank(&(self->uexkull), gainArray);
-        rval = UX_processRightBank(&(self->uexkull), gainArray);
+        lval = UX_processLeftBank(&(self->uexkull));
+        rval = UX_processRightBank(&(self->uexkull));
 
         lval <<= 15;
         rval <<= 15;
