@@ -30,21 +30,15 @@ typedef struct uexkull
     float lfoFreqArray[NUM_BANKS][NUM_OSC];
     float _diffractionConstant[NUM_BANKS];
     bool _diffractionWidth[NUM_BANKS]; //0: sparse, 1: dense
+    float _lfoAmp;
     float _fundamental;
 } uexkull_t;
 
 static const float randomOffsets[NUM_OSC] = {
     0.01,
-    0.2,
-    0.53,
-    // 0.48,
-    // 0.89,
-    // 0.91,
-    // 0.087,
-    // 0.77,
-    // 0.331,
-    // 0.04,
-    // 0.14
+    0.02,
+    0.03,
+    // Add more per osc
 };
 
 /**
@@ -72,7 +66,7 @@ void UX_destroy(uexkull_t *self);
 /**
  * Calculates the frequency series based on the fundamental
  */
-void UX_calculateFrequencySeries(uexkull_t *self, float fundamental, uint8_t numConstant, uint8_t numBank);
+void UX_calculateFrequencySeries(uexkull_t *self, float fundamental, uint8_t numConstant, uint8_t numBank, bool isSparse);
 
 /**
  * Calculates the LFO bank based on LFO params

@@ -151,13 +151,13 @@ static void _ADC_processPotMux(mux_param_t *self)
         param->val = ((float)param->val / ADC_BIT_DEPTH) * NUM_OSC;
         break;
     case (LFO_FREQ_POT):
-        param->val = ((float)fbsmooth_process(&param->fbsmooth, 0.999, param->val) / ADC_BIT_DEPTH) * 5.0f;
+        param->val = (uint32_t)fbsmooth_process(&param->fbsmooth, 0.999, param->val);
         break;
     case (LFO_PHASE_POT):
-        param->val = ((float)fbsmooth_process(&param->fbsmooth, 0.999, param->val) / ADC_BIT_DEPTH) * 5.0f;
+        param->val = (uint32_t)fbsmooth_process(&param->fbsmooth, 0.999, param->val);
         break;
     case (LFO_AMP_POT):
-        param->val = (float)fbsmooth_process(&param->fbsmooth, 0.999, param->val);
+        param->val = (uint32_t)fbsmooth_process(&param->fbsmooth, 0.999, param->val);
         break;
     default:
         break;

@@ -11,8 +11,19 @@ static void _DSP_processParams(dsp_t *self, adc_t *adc)
     float fundamental = ((float)adc->mux[UX_POT_MUX].params[FUNDAMENTAL_POT].val / ADC_BIT_DEPTH);
     float fine = ((float)adc->mux[UX_ATTENUVERTER_MUX].params[FUNDAMENTAL_FINE_ATTENUVERTER].val / ADC_BIT_DEPTH);
 
-    fundamental = ((fundamental * fundamental) * 15000.0f);
-    fine = (fine * fine) * ((float)log(fundamental) * 50.0f);
+    float lfoFreq = (float)(adc->mux[UX_POT_MUX].params[LFO_FREQ_POT].val / ADC_BIT_DEPTH) * 2.0f;
+    float lfoPhase = (float)(adc->mux[UX_POT_MUX].params[LFO_PHASE_POT].val / ADC_BIT_DEPTH) * 2.0f;
+    float lfoAmp = (float)(adc->mux[UX_POT_MUX].params[LFO_AMP_POT].val / ADC_BIT_DEPTH);
+
+    if (adc->gpio_params[FUNDAMENTAL_LINLOG_SWITCH].val)
+    {
+        fundamental = ((float)(fundamental * fundamental) * MAX_FREQ);
+        fine = (fine * fine) * ((float)log(fundamental) * 50.0f);
+    }
+    else {
+        fundamental = ((float)fundamental * MAX_FREQ);
+        fine = fine * ((float)log(fundamental) * 50.0f);
+    }
     fundamental += fine;
 
     UX_setWaveform(&self->uexkull, adc->mux[UX_POT_MUX].params[WAVEFORM_POT].val);
@@ -20,20 +31,18 @@ static void _DSP_processParams(dsp_t *self, adc_t *adc)
     UX_calculateFrequencySeries(&self->uexkull,
         fundamental,
         adc->mux[UX_POT_MUX].params[DIFFRACTION_POT_1].val,
-        0
+        0,
+        adc->gpio_params[SPARSE_DENSE_SWITCH].val
     );
 
     UX_calculateFrequencySeries(&self->uexkull,
         fundamental,
         adc->mux[UX_POT_MUX].params[DIFFRACTION_POT_2].val,
-        1
+        1,
+        adc->gpio_params[SPARSE_DENSE_SWITCH].val
     );
 
-    UX_calculateLFOFrequencies(&self->uexkull,
-        adc->mux[UX_POT_MUX].params[LFO_FREQ_POT].val,
-        adc->mux[UX_POT_MUX].params[LFO_PHASE_POT].val,
-        adc->mux[UX_POT_MUX].params[LFO_AMP_POT].val
-    );
+    UX_calculateLFOFrequencies(&self->uexkull, lfoFreq, lfoPhase, lfoAmp);
     // UX_setNumOscillators(&self->uexkull, adc->mux[UX_POT_MUX].params[NUM_OSC_POT].val);
 }
 

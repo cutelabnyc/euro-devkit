@@ -6,13 +6,19 @@
 *
 * This is the bread and butter of Uexkull, the heart and soul!
 */
-static void _UX_diffractionSeries(float *vector, uint16_t numElements, float diffractionConstant)
+static void _UX_diffractionSeries(float *vector, uint16_t numElements, float diffractionConstant, bool isSparse)
 {
     for (int i = 0; i < numElements; i++)
     {
         if (i != 0)
         {
-            vector[i] = vector[i - 1] + (vector[i - 1] * diffractionConstant);
+            if (isSparse)
+            {
+                vector[i] = vector[i - 1] + (vector[i - 1] * diffractionConstant);
+            }
+            else {
+                vector[i] = vector[i - 1] + (vector[0] * diffractionConstant);
+            }
         }
     }
 }
@@ -41,6 +47,7 @@ void UX_init(uexkull_t *self, float samplerate)
         self->_diffractionConstant[i] = diffractionConstants[0];
         self->_diffractionWidth[i] = false;
     }
+    self->_lfoAmp = 0;
     self->_fundamental = 0;
 }
 
@@ -52,13 +59,13 @@ void UX_setWaveform(uexkull_t *self, waveform_t waveform)
     }
 }
 
-void UX_calculateFrequencySeries(uexkull_t *self, float fundamental, uint8_t numConstant, uint8_t numBank)
+void UX_calculateFrequencySeries(uexkull_t *self, float fundamental, uint8_t numConstant, uint8_t numBank, bool isSparse)
 {
     self->_fundamental = fundamental;
 
     self->_diffractionConstant[numBank] = diffractionConstants[numConstant];
     self->freqArray[numBank][0] = fundamental;
-    _UX_diffractionSeries(self->freqArray[numBank], NUM_OSC, self->_diffractionConstant[numBank]);
+    _UX_diffractionSeries(self->freqArray[numBank], NUM_OSC, self->_diffractionConstant[numBank], isSparse);
 }
 
 void UX_calculateLFOFrequencies(uexkull_t *self, float lfoFreq, float phaseOffset, float amplitudeOffset)
@@ -76,6 +83,8 @@ void UX_calculateLFOFrequencies(uexkull_t *self, float lfoFreq, float phaseOffse
             }
         }
     }
+
+    self->_lfoAmp = amplitudeOffset;
 }
 
 void UX_setNumOscillators(uexkull_t *self, uint16_t gainCurve)
