@@ -11,10 +11,11 @@
 #ifndef UEXKULL_H
 #define UEXKULL_H
 
-#define NUM_OSC 10
+#define NUM_OSC 3
 #define NUM_BANKS 2
-#define MAX_FREQ 20000
+#define MAX_FREQ (SAMPLE_RATE / 2)
 #define NUM_DIFFRACTION_CONSTANTS 5
+#define NUM_WAVEFORMS 4
 
 #include <cuteop.h>
 
@@ -24,13 +25,21 @@
 typedef struct uexkull
 {
     t_bank bank[NUM_BANKS];
-    // t_series series;
+    t_bank lfo[NUM_BANKS];
     float freqArray[NUM_BANKS][NUM_OSC];
+    float lfoFreqArray[NUM_BANKS][NUM_OSC];
     float _diffractionConstant[NUM_BANKS];
     bool _diffractionWidth[NUM_BANKS]; //0: sparse, 1: dense
-
+    float _lfoAmp;
     float _fundamental;
 } uexkull_t;
+
+static const float randomOffsets[NUM_OSC] = {
+    0.01,
+    0.02,
+    0.03,
+    // Add more per osc
+};
 
 /**
  * Constants for diffraction series calculation
@@ -51,25 +60,31 @@ void UX_init(uexkull_t *self, float samplerate);
 
 /**
  * Frees the 'uexkull' struct
- *
- * TODO: Add and describe parameters
  */
 void UX_destroy(uexkull_t *self);
 
 /**
  * Calculates the frequency series based on the fundamental
  */
-void UX_calculateFrequencySeries(uexkull_t *self, float fundamental, uint8_t numConstant, uint8_t numBank);
+void UX_calculateFrequencySeries(uexkull_t *self, float fundamental, uint8_t numConstant, uint8_t numBank, bool isSparse);
+
+/**
+ * Calculates the LFO bank based on LFO params
+ */
+void UX_calculateLFOFrequencies(uexkull_t *self, float lfoFreq, float phaseOffset, float amplitudeOffset);
+
+/**
+ * Set waveform on both banks
+ */
+void UX_setWaveform(uexkull_t *self, waveform_t waveform);
 
 /**
  * Processes a single sample in the module's IO. The process
  * function acts as a bridge between the Daisy's DSP library
  * and Cute-Op's mathematical sequence generating module.
- *
- * TODO: Add and describe parameters
  */
-float UX_processLeftBank(uexkull_t *self);
-float UX_processRightBank(uexkull_t *self);
+float UX_processLeftBank(uexkull_t *self, float *gainCurve);
+float UX_processRightBank(uexkull_t *self, float *gainCurve);
 
 
 #endif /* OPPORTUNITY_H */

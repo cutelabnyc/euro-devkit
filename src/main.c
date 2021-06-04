@@ -25,7 +25,6 @@
 #include <arm_math.h>
 #include <string.h>
 
-
   // STM32 peripherals
 I2C_HandleTypeDef hi2c2;
 I2S_HandleTypeDef hi2s2;
@@ -88,10 +87,10 @@ int main(void)
     /* Infinite DMA transwmit */
     HAL_I2S_Transmit_DMA(&hi2s3, dsp.txBuf, SAMPLES * 2);
     HAL_I2S_Receive_DMA(&hi2s2, dsp.rxBuf, SAMPLES * 2);
-    HAL_ADC_Start_DMA(&hadc1, adc.adcBuf, 2);
 
     /* Init the timer for triggering the ADC */
     HAL_TIM_Base_Start(&htim_adc1);
+    HAL_ADC_Start_DMA(&hadc1, dma_buf, NUM_UX_ADC_PARAMS);
 
     /* Main loop */
     while (1)
@@ -127,8 +126,6 @@ void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s)
 {
     UNUSED(hi2s);
     txFullComplete = 1;
-    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_SET);
-    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_RESET);
 }
 
 void HAL_I2S_RxCpltCallback(I2S_HandleTypeDef *hi2s)
@@ -141,8 +138,6 @@ void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
 {
     UNUSED(hi2s);
     txHalfComplete = 1;
-    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_SET);
-    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_RESET);
 }
 
 void HAL_I2S_RxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
@@ -232,6 +227,7 @@ void SystemClock_Config(void)
     }
 }
 
+
 /**
   * @brief ADC1 Initialization Function
   * @param None
@@ -254,13 +250,13 @@ static void MX_ADC1_Init(void)
     hadc1.Instance = ADC1;
     hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV2;
     hadc1.Init.Resolution = ADC_RESOLUTION_12B;
-    hadc1.Init.ScanConvMode = ENABLE;
+    hadc1.Init.ScanConvMode = ADC_SCAN_ENABLE;
     hadc1.Init.ContinuousConvMode = DISABLE;
     hadc1.Init.DiscontinuousConvMode = DISABLE;
     hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
     hadc1.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T6_TRGO;
     hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-    hadc1.Init.NbrOfConversion = 2;
+    hadc1.Init.NbrOfConversion = NUM_UX_ADC_PARAMS;
     hadc1.Init.DMAContinuousRequests = ENABLE;
     hadc1.Init.EOCSelection = ADC_EOC_SEQ_CONV;
     if (HAL_ADC_Init(&hadc1) != HAL_OK)
@@ -269,21 +265,68 @@ static void MX_ADC1_Init(void)
     }
 
     /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time. */
-    sConfig.Channel = ADC_CHANNEL_9;
+    sConfig.Channel = ADC_CHANNEL_3;
     sConfig.Rank = ADC_REGULAR_RANK_1;
-    sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+    sConfig.SamplingTime = ADC_SAMPLETIME_15CYCLES;
     if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
     {
         Error_Handler();
     }
+
+    /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time. */
+    sConfig.Channel = ADC_CHANNEL_5;
+    sConfig.Rank = ADC_REGULAR_RANK_2;
+    sConfig.SamplingTime = ADC_SAMPLETIME_15CYCLES;
+    if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
+    /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time. */
+    sConfig.Channel = ADC_CHANNEL_6;
+    sConfig.Rank = ADC_REGULAR_RANK_3;
+    sConfig.SamplingTime = ADC_SAMPLETIME_15CYCLES;
+    if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
+    /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time. */
+    sConfig.Channel = ADC_CHANNEL_8;
+    sConfig.Rank = ADC_REGULAR_RANK_4;
+    sConfig.SamplingTime = ADC_SAMPLETIME_15CYCLES;
+    if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
+    /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time. */
+    sConfig.Channel = ADC_CHANNEL_9;
+    sConfig.Rank = ADC_REGULAR_RANK_5;
+    sConfig.SamplingTime = ADC_SAMPLETIME_15CYCLES;
+    if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
+    /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time. */
+    sConfig.Channel = ADC_CHANNEL_10;
+    sConfig.Rank = ADC_REGULAR_RANK_6;
+    sConfig.SamplingTime = ADC_SAMPLETIME_15CYCLES;
+    if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
     /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time. */
     sConfig.Channel = ADC_CHANNEL_12;
-    sConfig.Rank = ADC_REGULAR_RANK_2;
-    sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+    sConfig.Rank = ADC_REGULAR_RANK_7;
+    sConfig.SamplingTime = ADC_SAMPLETIME_15CYCLES;
     if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
     {
         Error_Handler();
     }
+
     /* USER CODE BEGIN ADC1_Init 2 */
 
     /* USER CODE END ADC1_Init 2 */
@@ -296,9 +339,10 @@ static void MX_TIM6_Init(void)
     TIM_MasterConfigTypeDef sMasterConfig;
 
     htim_adc1.Instance = TIM6;
-    htim_adc1.Init.Prescaler = 8400;
+    htim_adc1.Init.Prescaler = 10;
     htim_adc1.Init.CounterMode = TIM_COUNTERMODE_UP;
     htim_adc1.Init.Period = 100;
+    htim_adc1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
     htim_adc1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
     if (HAL_TIM_Base_Init(&htim_adc1) != HAL_OK)
     {
@@ -312,6 +356,7 @@ static void MX_TIM6_Init(void)
     }
 
     sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
+    sMasterConfig.MasterOutputTrigger2 = TIM_TRGO2_RESET;
     sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
     if (HAL_TIMEx_MasterConfigSynchronization(&htim_adc1, &sMasterConfig) != HAL_OK)
     {
@@ -464,6 +509,7 @@ static void MX_GPIO_Init(void)
     __HAL_RCC_GPIOG_CLK_ENABLE();
 
     /*Configure GPIO pin Output Level */
+    /* USED FOR THE MULTIPLEXER */
     HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6, GPIO_PIN_RESET);
 
     /*Configure GPIO pin Output Level */
