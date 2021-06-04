@@ -1,15 +1,86 @@
-# Uexküll
+# Eurorack Development Kit 🎛️
 
-Code for the Uexküll eurorack module.
+Template repository for developing Eurorack modules
 
-## Installation 🍤
+## The Stack 📚
 
-... 🤔
+The repository uses PlatformIO to build and upload code, while also pulling our own 
+version of the STM32 HAL library. 
 
-## Who Was Uexküll 🐡
+- `lib/` contains submodules for each eurorack module's
+code, as well as `cute-op` which is our internal API for DSP and operational code.
+- `include/` contains pin/GPIO mappings that can be added and configured for each module
+- `src/` has all the main hardware code according to development on STM32 chips
 
-Jakob Johann Freiherr von Uexküll was a Baltic German biologist who worked in the fields of muscular physiology, animal behaviour studies, and the cybernetics of life.
+## The Architecture 🏗️
 
-Uexküll was particularly interested in how living beings perceive their environment(s). He argued that organisms experience life in terms of species-specific, spatio-temporal, 'self-in-world' subjective reference frames that he called Umwelt (translated as surrounding-world, phenomenal world, self-world, environment - lit. German environment). These Umwelten (plural of Umwelt) are distinctive from what Uexküll termed the "Umgebung" which would be the living being's surroundings as seen from the likewise peculiar perspective or Umwelt of the human observer. Umwelt may thus be defined as the perceptual world in which an organism exists and acts as a subject. By studying how the senses of various organisms like ticks, sea urchins, amoebae, jellyfish and sea worms work, he was able to build theories of how they experience the world. Because all organisms perceive and react to sensory data as signs, Uexküll argued that they were to be considered as living subjects. This argument was the basis for his biological theory in which the characteristics of biological existence ("life") could not simply be described as a sum of its non-organic parts, but had to be described as subject and a part of a sign system.
+In order to prototype with this repo, the following hardware is necessary
 
-*thanks wikipedia :-)*
+- **Chip**: STM32F7xx
+- **Board**: Nucleo-F767ZIT
+- **Codec**: WM8731
+- **ADC Pins**: (TODO)
+- **GPIO Pins**: (TODO)
+
+## Installation 🔮
+
+Make sure to clone the repo recursively to download all the submodules
+
+```
+git clone --recursive https://github.com/cutelabnyc/euro-devkit.git
+```
+
+Install PlatformIO
+
+```
+# Linux
+python3 -c "$(curl -fsSL https://raw.githubusercontent.com/platformio/platformio/master/scripts/get-platformio.py)"
+
+# Mac OSX
+brew install platformio
+```
+
+In the devkit folder, run the following to install the HAL layer
+
+```
+pio lib install
+```
+
+### Run with Docker 🐋
+
+Alternatively, you can run the entire devkit in a Docker container...
+
+```
+docker build . -t cutelabnyc/euro-devkit
+docker run --rm -it cutelabnyc/euro-devkit
+docker exec -it cutelabnyc/euro-devkit /bin/bash
+```
+
+## Development 🍘
+
+Before working on the repo, checkout a new branch for euro-devkit with the eurorack module's name in the title. Open another branch for [cute-op](https://github.com/cutelabnyc/cute-op) too, just incase you end up accidentally writing a Laplace transform and want to refactor it.
+
+The environment for each module exists in `platform.ini`. You can upload code to the Nucleo using the following command
+
+```
+pio run -t upload -e <ENV_NAME>
+```
+
+where `<ENV_NAME>` is the name of the eurorack module you're working on.
+
+## Testing 🌋
+
+Automatic testing is handled on Travis CI upon pull requests. Local testing can be run with the following command
+
+```
+pio test -e <ENV_NAME>
+```
+
+## Forking 🍴
+
+This repo can alternatively act as a sort of boiler-plate template for developing a new eurorack module. Simply fork the repo without each Eurorack submodule...
+
+```
+git clone https://github.com/cutelabnyc/euro-devkit.git
+git submodule init cute-op
+```
