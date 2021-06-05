@@ -8,7 +8,7 @@ The repository uses PlatformIO to build and upload code, while also pulling our 
 version of the STM32 HAL library. 
 
 - `lib/` contains submodules for each eurorack module's
-code, as well as `cute-op` which is our internal API for DSP and operational code.
+code, as well as `cutesynth` which is our internal API for DSP and operational code.
 - `include/` contains pin/GPIO mappings that can be added and configured for each module
 - `src/` has all the main hardware code according to development on STM32 chips
 
@@ -53,12 +53,14 @@ Alternatively, you can run the entire devkit in a Docker container...
 ```
 docker build . -t cutelabnyc/euro-devkit
 docker run --rm -it cutelabnyc/euro-devkit
-docker exec -it cutelabnyc/euro-devkit /bin/bash
+
+# inside the container...
+pio test && pio run
 ```
 
 ## Development 🍘
 
-Before working on the repo, checkout a new branch for euro-devkit with the eurorack module's name in the title. Open another branch for [cute-op](https://github.com/cutelabnyc/cute-op) too, just incase you end up accidentally writing a Laplace transform and want to refactor it.
+Before working on the repo, checkout a new branch for euro-devkit with the eurorack module's name in the title. Open another branch for [cutesynth](https://github.com/cutelabnyc/cutesynth) too, just incase you end up accidentally writing a Laplace transform and want to refactor it.
 
 The environment for each module exists in `platform.ini`. You can upload code to the Nucleo using the following command
 
@@ -82,5 +84,6 @@ This repo can alternatively act as a sort of boiler-plate template for developin
 
 ```
 git clone https://github.com/cutelabnyc/euro-devkit.git
-git submodule init cute-op
+cd lib
+git submodule init cutesynth
 ```

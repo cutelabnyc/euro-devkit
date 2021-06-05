@@ -1,17 +1,15 @@
 # Free The Whales, Shut Down Sea World
+# TODO: Upload to board with Docker through ports
 
-FROM python:2.7
+FROM ubuntu:20.04 
 LABEL maintainer="CuteLab <https://www.cutelab.nyc>"
 
-COPY tag /tag
-RUN python -c "$(curl -fsSL https://raw.githubusercontent.com/platformio/platformio/$(cat /tag)/scripts/get-platformio.py)"
+RUN apt-get update && apt-get install -y curl python3 python3-venv
+RUN python3 -c "$(curl -fsSL https://raw.githubusercontent.com/platformio/platformio/master/scripts/get-platformio.py)"
 ENV PATH="/root/.platformio/penv/bin:${PATH}"
 
-RUN rm /tag
 RUN platformio platform update
 
-WORKDIR /project
+WORKDIR /euro-devkit
 
-COPY . ./project
-
-ENTRYPOINT ["pio", "run"]
+COPY . .
