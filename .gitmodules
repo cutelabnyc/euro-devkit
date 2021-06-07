@@ -1,0 +1,6 @@
+[submodule "lib/cutesynth"]
+	path = lib/cutesynth
+	url = git@github.com:cutelabnyc/cutesynth.git
+[submodule "lib/uexkull"]
+	path = lib/uexkull
+	url = git@github.com:cutelabnyc/uexkull.git
