@@ -2,6 +2,8 @@
 
 Template repository for developing Eurorack modules
 
+[![Build Status](https://travis-ci.com/cutelabnyc/euro-devkit.svg?branch=main)](https://travis-ci.com/cutelabnyc/euro-devkit)
+
 ## The Stack 📚
 
 The repository uses PlatformIO to build and upload code, while also pulling our own 

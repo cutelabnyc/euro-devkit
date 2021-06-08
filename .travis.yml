@@ -1,16 +1,18 @@
 #
 # Performs CI tests upon pull request
 #
-arch:
-  - arm64
+language: python
+python:
+  - "2.7"
 
-services:
-  - docker
+sudo: false
+cache:
+  directories:
+    - "~/.platformio"
 
-before_install:
-- docker build . -t cutelabnyc/euro-devkit
-- docker run --rm -it cutelabnyc/euro-devkit
+install:
+  - pip install -U platformio
+  - platformio update
 
 script:
-- pio run
- 
+  - pio test -e native && pio run
