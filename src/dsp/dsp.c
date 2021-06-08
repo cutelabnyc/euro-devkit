@@ -1,5 +1,5 @@
 #include "dsp.h"
-#include <arm_math.h>
+#include <math.h>
 
 void DSP_init(dsp_t *self)
 {

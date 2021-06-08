@@ -22,7 +22,7 @@
 #include "adc/adc.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <arm_math.h>
+#include <math.h>
 #include <string.h>
 
   // STM32 peripherals
