@@ -9,5 +9,8 @@ services:
 
 before_install:
 - docker build . -t cutelabnyc/euro-devkit
+- docker run --rm -it cutelabnyc/euro-devkit
 
+script:
+- pio run
  
