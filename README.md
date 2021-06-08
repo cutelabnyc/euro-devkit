@@ -42,12 +42,6 @@ python3 -c "$(curl -fsSL https://raw.githubusercontent.com/platformio/platformio
 brew install platformio
 ```
 
-In the devkit folder, run the following to install the HAL layer
-
-```
-pio lib install
-```
-
 ### Run with Docker 🐋
 
 Alternatively, you can run the entire devkit in a Docker container...
