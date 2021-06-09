@@ -7,14 +7,14 @@ python:
 
 git:
   submodules: false
-  
+
 sudo: true
 cache:
   directories:
     - "~/.platformio"
   
 before_install:
-  - sudo git submodule update --init --recursive 
+  - git submodule update --force --init --recursive 
 
 install:
   - pip install -U platformio
