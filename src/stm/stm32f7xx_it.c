@@ -244,6 +244,21 @@ void DMA2_Stream0_IRQHandler(void)
     /* USER CODE END DMA2_Stream0_IRQn 1 */
 }
 
+#if defined(STM32F746xx)
+/**
+  * @brief This function handles DMA1 stream3 global interrupt.
+  */
+void DMA1_Stream3_IRQHandler(void)
+{
+    /* USER CODE BEGIN DMA1_Stream3_IRQn 0 */
+
+    /* USER CODE END DMA1_Stream3_IRQn 0 */
+    HAL_DMA_IRQHandler(&hdma_spi2_rx);
+    /* USER CODE BEGIN DMA1_Stream3_IRQn 1 */
+
+    /* USER CODE END DMA1_Stream3_IRQn 1 */
+}
+#else
 /**
   * @brief This function handles DMA1 stream1 global interrupt.
   */
@@ -257,6 +272,7 @@ void DMA1_Stream1_IRQHandler(void)
 
     /* USER CODE END DMA1_Stream1_IRQn 1 */
 }
+#endif
 
 /**
   * @brief This function handles DMA1 stream5 global interrupt.

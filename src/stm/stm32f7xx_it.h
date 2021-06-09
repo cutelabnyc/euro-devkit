@@ -56,7 +56,11 @@ void SVC_Handler(void);
 void DebugMon_Handler(void);
 void PendSV_Handler(void);
 void SysTick_Handler(void);
+#if defined(STM32F746xx)
+void DMA1_Stream3_IRQHandler(void);
+#else
 void DMA1_Stream1_IRQHandler(void);
+#endif
 void DMA1_Stream5_IRQHandler(void);
 void EXTI15_10_IRQHandler(void);
 /* USER CODE BEGIN EFP */
