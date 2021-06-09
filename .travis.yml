@@ -5,10 +5,16 @@ language: python
 python:
   - "2.7"
 
-sudo: false
+git:
+  submodules: false
+  
+sudo: true
 cache:
   directories:
     - "~/.platformio"
+  
+before_install:
+  - sudo git submodule update --init --recursive 
 
 install:
   - pip install -U platformio
