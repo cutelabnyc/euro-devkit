@@ -84,13 +84,21 @@ int main(void)
     ADC_init(&adc, &hadc1);
     CODEC_init(&hi2c2);
 
-    /* Infinite DMA transwmit */
+    /* Infinite DMA transmit */
     HAL_I2S_Transmit_DMA(&hi2s3, dsp.txBuf, SAMPLES * 2);
     HAL_I2S_Receive_DMA(&hi2s2, dsp.rxBuf, SAMPLES * 2);
 
     /* Init the timer for triggering the ADC */
     HAL_TIM_Base_Start(&htim_adc1);
     HAL_ADC_Start_DMA(&hadc1, dma_buf, NUM_UX_ADC_PARAMS);
+
+    // Force the ADC values for debugging
+#ifdef NO_POTS
+    for (int i = 0; i < NUM_POT_MUX_IDS; i++) {
+        adc.mux[UX_POT_MUX].sel = i;
+        ADC_processBlock(&adc);
+    }
+#endif
 
     /* Main loop */
     while (1)
@@ -475,9 +483,16 @@ static void MX_DMA_Init(void)
     __HAL_RCC_DMA2_CLK_ENABLE();
 
     /* DMA interrupt init */
+
+#if defined (STM32F746xx)
+    /* DMA1_Stream1_IRQn interrupt configuration */
+    HAL_NVIC_SetPriority(DMA1_Stream3_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(DMA1_Stream3_IRQn);
+#else
     /* DMA1_Stream1_IRQn interrupt configuration */
     HAL_NVIC_SetPriority(DMA1_Stream1_IRQn, 0, 0);
     HAL_NVIC_EnableIRQ(DMA1_Stream1_IRQn);
+#endif
 
     /* DMA1_Stream5_IRQn interrupt configuration */
     HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 0, 0);
