@@ -84,13 +84,21 @@ int main(void)
     ADC_init(&adc, &hadc1);
     CODEC_init(&hi2c2);
 
-    /* Infinite DMA transwmit */
+    /* Infinite DMA transmit */
     HAL_I2S_Transmit_DMA(&hi2s3, dsp.txBuf, SAMPLES * 2);
     HAL_I2S_Receive_DMA(&hi2s2, dsp.rxBuf, SAMPLES * 2);
 
     /* Init the timer for triggering the ADC */
     HAL_TIM_Base_Start(&htim_adc1);
     HAL_ADC_Start_DMA(&hadc1, dma_buf, NUM_UX_ADC_PARAMS);
+
+    // Force the ADC values for debugging
+#ifdef NO_POTS
+    for (int i = 0; i < NUM_POT_MUX_IDS; i++) {
+        adc.mux[UX_POT_MUX].sel = i;
+        ADC_processBlock(&adc);
+    }
+#endif
 
     /* Main loop */
     while (1)
@@ -101,6 +109,13 @@ int main(void)
             ADC_processBlock(&adc);
             adcFullComplete = 0;
         }
+
+        // RX doesn't seem to be working on the 746zg board, so skip
+        // it for now
+#if defined(STM32F746xx)
+            rxHalfComplete = 1;
+            rxFullComplete = 1;
+#endif
 
         // DSP Half/Full Callback
         if (rxHalfComplete && txHalfComplete)

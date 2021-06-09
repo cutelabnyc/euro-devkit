@@ -1,6 +1,16 @@
 #include "adc.h"
 #include "uexkull.h"
 
+#ifdef NO_POTS
+static float HARDCODED_ATTENUVERTER_VALUES[NUM_ATTEN_MUX_IDS] = {
+    0, 0, 0, 0, 0, 0, 0, 0
+};
+
+static float HARDCODED_POT_VALUES[NUM_POT_MUX_IDS] = {
+    440, 1, 2, 0, 3, 0.9, 0.9, 1
+};
+#endif
+
 static void _ADC_init_adc_param(adc_param_t *self, uint8_t id)
 {
     self->val = 0;
@@ -76,6 +86,11 @@ static void _ADC_processAttenuverterMux(mux_param_t *self)
     adc_param_t *param = &self->params[self->sel];
     param->val = dma_buf[MUX_IN_ATTENUVERTERS];
 
+#ifdef NO_POTS
+    param->val = HARDCODED_ATTENUVERTER_VALUES[self->sel];
+    return;
+#endif
+
     // Then, go one by one to process individual values and beautify
     // them: e.g. filtering, denoising, scaling
     switch (self->sel)
@@ -140,6 +155,11 @@ static void _ADC_processPotMux(mux_param_t *self)
     // value from the DMA buffer
     adc_param_t *param = &self->params[self->sel];
     param->val = dma_buf[MUX_IN_POTS];
+
+#ifdef NO_POTS
+    param->val = HARDCODED_POT_VALUES[self->sel];
+    return;
+#endif
 
     // Then, go one by one to process individual values and beautify
     // them: e.g. filtering, denoising, scaling

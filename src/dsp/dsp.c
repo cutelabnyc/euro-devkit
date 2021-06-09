@@ -56,7 +56,12 @@ void DSP_processBlock(dsp_t *self, adc_t *adc, bool isHalfCallback)
     for (int i = 0; i < NUM_OSC; i++)
     {
         // TODO: Smoothen/Log out these values as a curve for number of oscillators
+
+#ifdef NO_POTS
+        gainCurve[i] = 2;
+#else
         gainCurve[i] = ((float)adc->mux[UX_POT_MUX].params[NUM_OSC_POT].val / ADC_BIT_DEPTH);
+#endif
     }
 
     for (int pos = startBuf; pos < endBuf; pos += 4)
