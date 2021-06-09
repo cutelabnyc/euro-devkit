@@ -110,13 +110,6 @@ int main(void)
             adcFullComplete = 0;
         }
 
-        // RX doesn't seem to be working on the 746zg board, so skip
-        // it for now
-#if defined(STM32F746xx)
-            rxHalfComplete = 1;
-            rxFullComplete = 1;
-#endif
-
         // DSP Half/Full Callback
         if (rxHalfComplete && txHalfComplete)
         {
@@ -490,9 +483,16 @@ static void MX_DMA_Init(void)
     __HAL_RCC_DMA2_CLK_ENABLE();
 
     /* DMA interrupt init */
+
+#if defined (STM32F746xx)
+    /* DMA1_Stream1_IRQn interrupt configuration */
+    HAL_NVIC_SetPriority(DMA1_Stream3_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(DMA1_Stream3_IRQn);
+#else
     /* DMA1_Stream1_IRQn interrupt configuration */
     HAL_NVIC_SetPriority(DMA1_Stream1_IRQn, 0, 0);
     HAL_NVIC_EnableIRQ(DMA1_Stream1_IRQn);
+#endif
 
     /* DMA1_Stream5_IRQn interrupt configuration */
     HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 0, 0);

@@ -64,6 +64,7 @@ void DSP_processBlock(dsp_t *self, adc_t *adc, bool isHalfCallback)
 #endif
     }
 
+    // Uexküll
     for (int pos = startBuf; pos < endBuf; pos += 4)
     {
         int lval = 0;
@@ -80,4 +81,10 @@ void DSP_processBlock(dsp_t *self, adc_t *adc, bool isHalfCallback)
         self->txBuf[pos + 2] = (rval >> 16) & 0xFFFF;
         self->txBuf[pos + 3] = rval & 0xFFFF;
     }
+
+    // Pass-through
+    // for (int pos = startBuf; pos < endBuf; pos++)
+    // {
+    //     self->txBuf[pos] = self->rxBuf[pos];
+    // }
 }
