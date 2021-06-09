@@ -14,7 +14,7 @@ cache:
     - "~/.platformio"
   
 before_install:
-  - git submodule update --force --init --recursive 
+  - sudo git submodule update --force --init --recursive 
 
 install:
   - pip install -U platformio
