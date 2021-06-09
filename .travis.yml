@@ -8,13 +8,14 @@ python:
 git:
   submodules: false
 
-sudo: true
+sudo: false
 cache:
   directories:
     - "~/.platformio"
   
 before_install:
-  - sudo git submodule update --force --init --recursive 
+  - git config --global core.sshCommand "ssh -i $HOME/.config/ssh/id_rsa -F /dev/null"
+  - git submodule update--init --recursive 
 
 install:
   - pip install -U platformio
