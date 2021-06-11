@@ -4,13 +4,13 @@
 #ifdef NO_POTS
 static float HARDCODED_ATTENUVERTER_VALUES[NUM_ATTEN_MUX_IDS] = {
     0, // Fine Tune Freq
-    0, // Waveform
-    0, // Number of Oscillators
-    1000, // FM
-    1000, // AM
-    0, // LFO Freq
-    0, // LFO Phase
-    0 // LFO Amp
+    0, // Waveform 
+    0, // Number of Oscillators (0 - 10)
+    1000, // FM (0 - 4096)
+    0, // AM (0 - 4096)
+    0, // LFO Freq (0 - 4096)
+    0, // LFO Phase (0 - 4096)
+    0 // LFO Amp (0 - 4096)
 };
 
 static float HARDCODED_POT_VALUES[NUM_POT_MUX_IDS] = {
@@ -19,9 +19,9 @@ static float HARDCODED_POT_VALUES[NUM_POT_MUX_IDS] = {
     2, // Diffraction Const Bank 2 (0, 1, 2, 3, 4)
     0, // Waveform (0, 1, 2, 3)
     3, // Number of Oscillators (0 -10)
-    1000, // LFO Freq (0 - 4096)
-    3000, // LFO Phase (0 - 4096)
-    1000 // LFO Amp (0 - 4096)
+    0, // LFO Freq (0 - 4096)
+    0, // LFO Phase (0 - 4096)
+    0 // LFO Amp (0 - 4096)
 };
 #endif
 
