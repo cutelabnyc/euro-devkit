@@ -13,7 +13,7 @@ extern "C"
 #include "globals.h"
 #include <cuteop.h>
 
-    uint32_t dma_buf[NUM_UX_ADC_PARAMS];
+    uint32_t dma_buf[NUM_ADC_IDS];
 
     typedef struct adc_param {
         uint8_t id;
@@ -36,10 +36,10 @@ extern "C"
     typedef struct adc {
         ADC_HandleTypeDef *hadc;
         uint8_t interSelector;
-        adc_param_t adc_params[NUM_UX_ADC_PARAMS];
-        gpio_param_t gpio_params[NUM_UX_GPIO_PARAMS];
+        adc_param_t adc_params[NUM_ADC_IDS];
+        gpio_param_t gpio_params[NUM_GPIO_IDS];
         // led_param_t led_params[NUM_UX_LED_PARAMS];
-        mux_param_t mux[NUM_UX_MUXS];
+        mux_param_t mux[NUM_MUX_IDS];
 
     } adc_t;
 
