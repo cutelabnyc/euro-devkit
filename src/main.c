@@ -90,7 +90,7 @@ int main(void)
 
     /* Init the timer for triggering the ADC */
     HAL_TIM_Base_Start(&htim_adc1);
-    HAL_ADC_Start_DMA(&hadc1, dma_buf, NUM_UX_ADC_PARAMS);
+    HAL_ADC_Start_DMA(&hadc1, dma_buf, NUM_ADC_IDS);
 
     // Force the ADC values for debugging
 #ifdef NO_POTS
@@ -264,7 +264,7 @@ static void MX_ADC1_Init(void)
     hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
     hadc1.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T6_TRGO;
     hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-    hadc1.Init.NbrOfConversion = NUM_UX_ADC_PARAMS;
+    hadc1.Init.NbrOfConversion = NUM_ADC_IDS;
     hadc1.Init.DMAContinuousRequests = ENABLE;
     hadc1.Init.EOCSelection = ADC_EOC_SEQ_CONV;
     if (HAL_ADC_Init(&hadc1) != HAL_OK)

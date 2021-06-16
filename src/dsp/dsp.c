@@ -58,7 +58,7 @@ void DSP_processBlock(dsp_t *self, adc_t *adc, bool isHalfCallback)
         // TODO: Smoothen/Log out these values as a curve for number of oscillators
 
 #ifdef NO_POTS
-        gainCurve[i] = 2;
+        gainCurve[i] = 1;
 #else
         gainCurve[i] = ((float)adc->mux[UX_POT_MUX].params[NUM_OSC_POT].val / ADC_BIT_DEPTH);
 #endif
@@ -70,8 +70,17 @@ void DSP_processBlock(dsp_t *self, adc_t *adc, bool isHalfCallback)
         int lval = 0;
         int rval = 0;
 
-        lval = UX_processLeftBank(&(self->uexkull), gainCurve);
-        rval = UX_processRightBank(&(self->uexkull), gainCurve);
+        float fm = (self->rxBuf[pos] << 16) | (self->rxBuf[pos + 1]);
+        float am = (self->rxBuf[pos + 2] << 16) | (self->rxBuf[pos + 3]);
+        float fmAtten = ((float)adc->mux[UX_ATTENUVERTER_MUX].params[FM_ATTENUVERTER].val / ADC_BIT_DEPTH) * 50.0f;
+        float amAtten = ((float)adc->mux[UX_ATTENUVERTER_MUX].params[AM_ATTENUVERTER].val / ADC_BIT_DEPTH) * 50.0f;
+
+        fm /= (UINT32_MAX >> 1);
+        am /= (UINT32_MAX >> 1);
+
+
+        lval = UX_processLeftBank(&(self->uexkull), fm, am, fmAtten, amAtten, gainCurve);
+        rval = UX_processRightBank(&(self->uexkull), fm, am, fmAtten, amAtten, gainCurve);
 
         lval <<= 15;
         rval <<= 15;

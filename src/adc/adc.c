@@ -3,11 +3,25 @@
 
 #ifdef NO_POTS
 static float HARDCODED_ATTENUVERTER_VALUES[NUM_ATTEN_MUX_IDS] = {
-    0, 0, 0, 0, 0, 0, 0, 0
+    0, // Fine Tune Freq
+    0, // Waveform 
+    0, // Number of Oscillators (0 - 10)
+    1000, // FM (0 - 4096)
+    1000, // AM (0 - 4096)
+    0, // LFO Freq (0 - 4096)
+    0, // LFO Phase (0 - 4096)
+    0 // LFO Amp (0 - 4096)
 };
 
 static float HARDCODED_POT_VALUES[NUM_POT_MUX_IDS] = {
-    440, 1, 2, 0, 3, 0.9, 0.9, 1
+    40, // Fundamental
+    1, // Diffraction Const Bank 1 (0, 1, 2, 3, 4)
+    2, // Diffraction Const Bank 2 (0, 1, 2, 3, 4)
+    0, // Waveform (0, 1, 2, 3)
+    3, // Number of Oscillators (0 -10)
+    3000, // LFO Freq (0 - 4096)
+    1, // LFO Phase (0 - 4096)
+    4096 // LFO Amp (0 - 4096)
 };
 #endif
 
@@ -38,7 +52,7 @@ void ADC_init(adc_t *self, ADC_HandleTypeDef *adcx)
     // Initialize HAL ADC and ADC DMA buffer
     self->hadc = adcx;
     self->interSelector = 0;
-    for (int i = 0; i < NUM_UX_ADC_PARAMS; i++)
+    for (int i = 0; i < NUM_ADC_IDS; i++)
     {
         dma_buf[i] = 0;
         if (i >= MUX_OFFSET)
@@ -47,7 +61,7 @@ void ADC_init(adc_t *self, ADC_HandleTypeDef *adcx)
             _ADC_init_mux_param(&self->mux[i]);
     }
 
-    for (int i = 0; i < NUM_UX_GPIO_PARAMS; i++)
+    for (int i = 0; i < NUM_GPIO_IDS; i++)
     {
         _ADC_init_gpio_param(&self->gpio_params[i], i);
     }
@@ -67,7 +81,7 @@ static void _ADC_incrementMux(adc_t *self)
     HAL_GPIO_WritePin(GPIOE, GPIO_PIN_5, (self->interSelector >> 1) & 0x01);
     HAL_GPIO_WritePin(GPIOE, GPIO_PIN_6, (self->interSelector >> 2) & 0x01);
 
-    for (int i = 0; i < NUM_UX_MUXS; i++)
+    for (int i = 0; i < NUM_MUX_IDS; i++)
     {
         self->mux[i].sel = self->interSelector;
     }
@@ -102,9 +116,11 @@ static void _ADC_processAttenuverterMux(mux_param_t *self)
         break;
     case (NUM_OSC_ATTENUVERTER):
         break;
-    case (FM_ATTENUVERTER_1):
+    case (FM_ATTENUVERTER):
+        param->val = (uint32_t)fbsmooth_process(&param->fbsmooth, 0.999, param->val);
         break;
-    case (FM_ATTENUVERTER_2):
+    case (AM_ATTENUVERTER):
+        param->val = (uint32_t)fbsmooth_process(&param->fbsmooth, 0.999, param->val);
         break;
     case (LFO_FREQ_ATTENUVERTER):
         break;
@@ -250,7 +266,7 @@ void ADC_processBlock(adc_t *self)
     // Then process LEDS...
 
     // Then process audio inlets
-    // for (int i = 0; i < NUM_UX_ADC_PARAMS; i++)
+    // for (int i = 0; i < NUM_ADC_IDS; i++)
     // {
     //     self->adc_params[i] = _ADC_processADCValue(&self->adc_params[i], i);
     // }
