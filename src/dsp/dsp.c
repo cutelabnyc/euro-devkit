@@ -1,5 +1,6 @@
 #include "dsp.h"
 #include <math.h>
+#include <stdio.h>
 
 void DSP_init(dsp_t *self)
 {
@@ -25,6 +26,10 @@ static void _DSP_processParams(dsp_t *self, adc_t *adc)
         fine = fine * ((float)log(fundamental) * 50.0f);
     }
     fundamental += fine;
+
+    printf("Hello World\n");
+    printf("fundamental: %i\n", fundamental);
+
 
     UX_setWaveform(&self->uexkull, adc->mux[UX_POT_MUX].params[WAVEFORM_POT].val);
     UX_calculateLFOFrequencies(&self->uexkull, lfoFreq, lfoPhase, lfoAmp);
