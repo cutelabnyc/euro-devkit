@@ -11,6 +11,8 @@ env.Append(
         "-mthumb",
         "-march=armv7e-m",
         "-mfloat-abi=hard",
-        "-mfpu=fpv4-sp-d16"
+        "-mfpu=fpv4-sp-d16",
+        "-u",
+        "_printf_float"
     ]
 )

@@ -90,8 +90,8 @@ static void _ADC_incrementMux(adc_t *self)
 // NOTE: It would be super usefull in the future to do all of
 // your smoothening and processing of values from hardware here
 // and allow the data returned to be of a mutable type so that 
-// values can play directly into the DSP routine without type casting!
-// Also maybe write some sort of interface for this function 
+// values can play directly into the DSP routine without type 
+// casting! Also maybe write some sort of interface for this function 
 static void _ADC_processAttenuverterMux(mux_param_t *self)
 {
 

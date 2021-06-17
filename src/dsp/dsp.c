@@ -1,5 +1,6 @@
 #include "dsp.h"
 #include <math.h>
+#include <stdio.h>
 
 void DSP_init(dsp_t *self)
 {
@@ -8,7 +9,9 @@ void DSP_init(dsp_t *self)
 
 static void _DSP_processParams(dsp_t *self, adc_t *adc)
 {
-    float fundamental = ((float)adc->mux[UX_POT_MUX].params[FUNDAMENTAL_POT].val / ADC_BIT_DEPTH);
+    float fundamental = ((float)(adc->mux[UX_POT_MUX].params[FUNDAMENTAL_POT].val) / ADC_BIT_DEPTH);
+
+    // printf("fundamental: %f\n", fundamental);
     float fine = ((float)adc->mux[UX_ATTENUVERTER_MUX].params[FUNDAMENTAL_FINE_ATTENUVERTER].val / ADC_BIT_DEPTH);
 
     float lfoFreq = (float)(adc->mux[UX_POT_MUX].params[LFO_FREQ_POT].val / ADC_BIT_DEPTH) * 2.0f;

@@ -36,6 +36,25 @@ TIM_HandleTypeDef htim_adc1;
 DMA_HandleTypeDef hdma_adc1;
 UART_HandleTypeDef huart3;
 
+/* USER CODE BEGIN PTD */
+#ifdef __GNUC__
+  /* With GCC, small printf (option LD Linker->Libraries->Small printf
+     set to 'Yes') calls __io_putchar() */
+#define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
+#else
+#define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
+#endif /* __GNUC__ */
+/* USER CODE END PTD */
+
+PUTCHAR_PROTOTYPE
+{
+    /* Place your implementation of fputc here */
+    /* e.g. write a character to the EVAL_COM1 and Loop until the end of transmission */
+    HAL_UART_Transmit(&huart3, (uint8_t *)&ch, 1, 0xFFFF);
+    return ch;
+}
+
+
 // I/O peripherals
 dsp_t dsp;
 adc_t adc;
@@ -449,6 +468,7 @@ static void MX_I2S3_Init(void)
     }
 }
 
+
 /**
   * @brief USART3 Initialization Function
   * @param None
@@ -457,7 +477,7 @@ static void MX_I2S3_Init(void)
 static void MX_USART3_UART_Init(void)
 {
     huart3.Instance = USART3;
-    huart3.Init.BaudRate = 115200;
+    huart3.Init.BaudRate = 9000;
     huart3.Init.WordLength = UART_WORDLENGTH_8B;
     huart3.Init.StopBits = UART_STOPBITS_1;
     huart3.Init.Parity = UART_PARITY_NONE;
