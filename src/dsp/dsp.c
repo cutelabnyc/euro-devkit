@@ -9,7 +9,9 @@ void DSP_init(dsp_t *self)
 
 static void _DSP_processParams(dsp_t *self, adc_t *adc)
 {
-    float fundamental = ((float)adc->mux[UX_POT_MUX].params[FUNDAMENTAL_POT].val / ADC_BIT_DEPTH);
+    float fundamental = ((float)(adc->mux[UX_POT_MUX].params[FUNDAMENTAL_POT].val) / ADC_BIT_DEPTH);
+
+    // printf("fundamental: %f\n", fundamental);
     float fine = ((float)adc->mux[UX_ATTENUVERTER_MUX].params[FUNDAMENTAL_FINE_ATTENUVERTER].val / ADC_BIT_DEPTH);
 
     float lfoFreq = (float)(adc->mux[UX_POT_MUX].params[LFO_FREQ_POT].val / ADC_BIT_DEPTH) * 2.0f;
@@ -26,10 +28,6 @@ static void _DSP_processParams(dsp_t *self, adc_t *adc)
         fine = fine * ((float)log(fundamental) * 50.0f);
     }
     fundamental += fine;
-
-    printf("Hello World\n");
-    printf("fundamental: %i\n", fundamental);
-
 
     UX_setWaveform(&self->uexkull, adc->mux[UX_POT_MUX].params[WAVEFORM_POT].val);
     UX_calculateLFOFrequencies(&self->uexkull, lfoFreq, lfoPhase, lfoAmp);
